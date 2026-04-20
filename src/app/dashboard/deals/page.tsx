@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 type Deal = {
@@ -91,7 +92,9 @@ export default function DealsPage() {
           {deals.map((deal) => (
             <div key={deal.id} className="bg-[#111] border border-gray-800 px-5 py-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">{deal.name}</p>
+                <Link href={`/dashboard/deals/${deal.id}`} className="text-white text-sm font-medium truncate hover:text-[#c9a84c] transition-colors block">
+                  {deal.name}
+                </Link>
                 <div className="flex items-center gap-3 mt-1">
                   <p className="text-gray-500 text-xs">{deal.owner.name}</p>
                   {deal.sector && <span className="text-gray-600 text-xs">{deal.sector}</span>}

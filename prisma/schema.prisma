@@ -18,6 +18,7 @@ model User {
   deals         Deal[]
   agentMessages AgentMessage[]
   uploadedFiles UploadedFile[]
+  dealTasks     DealTask[]
 }
 
 model Deal {
@@ -34,6 +35,8 @@ model Deal {
   owner         User           @relation(fields: [ownerId], references: [id])
   documents     Document[]
   uploadedFiles UploadedFile[]
+  tasks         DealTask[]
+  dealProviders DealProvider[]
 }
 
 model Document {
@@ -78,16 +81,17 @@ model Integration {
 }
 
 model ServiceProvider {
-  id        String   @id @default(cuid())
-  name      String
-  type      String
-  rating    Float?
-  contact   String?
-  email     String?
-  pricing   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String         @id @default(cuid())
+  name         String
+  type         String
+  rating       Float?
+  contact      String?
+  email        String?
+  pricing      String?
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  dealProviders DealProvider[]
 }
 
 model AgentConfig {
@@ -108,4 +112,32 @@ model AgentMessage {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model DealTask {
+  id         String    @id @default(cuid())
+  title      String
+  status     String    @default("OPEN")
+  priority   String    @default("MEDIUM")
+  assigneeId String?
+  assignee   User?     @relation(fields: [assigneeId], references: [id])
+  dueDate    DateTime?
+  dealId     String
+  deal       Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([dealId])
+}
+
+model DealProvider {
+  id         String          @id @default(cuid())
+  dealId     String
+  deal       Deal            @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  providerId String
+  provider   ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+
+  @@unique([dealId, providerId])
+  @@index([dealId])
 }
