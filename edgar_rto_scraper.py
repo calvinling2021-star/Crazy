@@ -139,19 +139,17 @@ skipped_filings: list[str] = []
 # ---------------------------------------------------------------------------
 
 SESSION = requests.Session()
+# SEC requires: "Company/AppName Version contact@email.com"
 SESSION.headers.update({
-    "User-Agent": USER_AGENT,
+    "User-Agent":      f"EDGAR-RTO-Scraper/1.0 {USER_AGENT}",
+    "Accept":          "application/json, text/html, */*",
     "Accept-Encoding": "gzip, deflate",
-    "Host": "efts.sec.gov",
 })
 
 
-def _get(url: str, params: dict | None = None, host_override: str | None = None) -> requests.Response | None:
-    headers = {}
-    if host_override:
-        headers["Host"] = host_override
+def _get(url: str, params: dict | None = None) -> requests.Response | None:
     try:
-        resp = SESSION.get(url, params=params, headers=headers, timeout=30)
+        resp = SESSION.get(url, params=params, timeout=30)
         resp.raise_for_status()
         time.sleep(REQUEST_DELAY)
         return resp
@@ -180,10 +178,8 @@ def search_efts(query: str) -> list[dict]:
             "enddt":     END_DATE,
             "forms":     FORM_TYPES,
             "from":      from_offset,
-            "_source":   "file_date,form_type,entity_name,file_num,period_of_report,biz_location,"
-                         "inc_states,display_date_filed,id",
         }
-        resp = _get(EFTS_BASE, params=params, host_override="efts.sec.gov")
+        resp = _get(EFTS_BASE, params=params)
         if resp is None:
             break
 
@@ -237,8 +233,7 @@ def fetch_filing_text(cik: str, accession: str) -> str | None:
     index_url = (
         f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{accession}-index.htm"
     )
-    SESSION.headers["Host"] = "www.sec.gov"
-    resp = _get(index_url, host_override="www.sec.gov")
+    resp = _get(index_url)
 
     doc_url: str | None = None
 
@@ -263,7 +258,7 @@ def fetch_filing_text(cik: str, accession: str) -> str | None:
             f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{accession}.txt"
         )
 
-    resp2 = _get(doc_url, host_override="www.sec.gov")
+    resp2 = _get(doc_url)
     if resp2 is None:
         return None
 
