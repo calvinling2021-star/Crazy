@@ -3,17 +3,21 @@ SEC EDGAR Full-Text Search Scraper
 Finds brokers, finders, and financial advisors in reverse merger / shell company filings.
 
 Usage:
-    python edgar_rto_scraper.py            # full run
-    python edgar_rto_scraper.py --test     # offline extraction smoke-test
+    python edgar_rto_scraper.py                   # full run (overwrites CSVs)
+    python edgar_rto_scraper.py --resume          # skip already-processed filings, append to CSVs
+    python edgar_rto_scraper.py --limit 50        # process at most 50 filings
+    python edgar_rto_scraper.py --test            # offline extraction smoke-test
 
 Output:
-    edgar_rto_brokers.csv   - one row per extracted broker/finder mention
-    broker_summary.csv      - one row per unique broker/finder (aggregated)
+    edgar_rto_brokers.csv              - one row per extracted broker/finder mention
+    broker_summary.csv                 - one row per unique broker/finder (aggregated)
+    .edgar_scraper_checkpoint          - processed accession numbers (used by --resume)
 """
 
 import argparse
 import csv
 import logging
+import os
 import re
 import time
 from collections import defaultdict
@@ -48,8 +52,9 @@ REQUEST_DELAY = 0.5    # seconds between requests (SEC rate limit)
 PAGE_SIZE     = 20     # results per EFTS page (sent as &size=)
 MAX_RETRIES   = 3      # retry attempts on transient errors
 
-OUTPUT_FILINGS = "edgar_rto_brokers.csv"
-OUTPUT_SUMMARY = "broker_summary.csv"
+OUTPUT_FILINGS    = "edgar_rto_brokers.csv"
+OUTPUT_SUMMARY    = "broker_summary.csv"
+CHECKPOINT_FILE   = ".edgar_scraper_checkpoint"
 
 FILINGS_FIELDNAMES = [
     "filing_date", "form_type", "pubco_name", "cik", "ticker",
@@ -100,11 +105,30 @@ COUNTRY_PATTERNS = re.compile(
 )
 
 # Title-cased proper name, optionally followed by an entity-type suffix
+_ENTITY_SUFFIX = (
+    r"(?:\s+(?:Ltd\.?|LLC|L\.L\.C\.|Inc\.?|Corp\.?|Co\.?|"
+    r"Capital|Partners|Group|Advisors?|Securities|Investments?|"
+    r"Financial|Management|Holdings?|Consulting|Broker|"
+    r"International|Global|Ventures?|Associates?))?"
+)
 NAME_PATTERN = re.compile(
-    r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,4}"
-    r"(?:\s+(?:Ltd|LLC|Inc|Corp|Capital|Partners|Group|Advisors?|Securities|"
-    r"Investments?|Financial|Management|Holdings?|Consulting|Broker|"
-    r"International|Global|Ventures?))?)\b"
+    r"\b([A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|&)){1,5}" + _ENTITY_SUFFIX + r")\b"
+)
+
+# Verb/preposition phrases that directly introduce a broker/finder name
+_ROLE_INTRO = re.compile(
+    r"(?:"
+    r"fee\s+(?:of\s+[\$\d%,\.\s]+\s+)?to\s+"          # "fee of $X to ..."
+    r"|paid\s+to\s+"                                    # "paid to ..."
+    r"|payable\s+to\s+"                                 # "payable to ..."
+    r"|due\s+to\s+"                                     # "due to ..."
+    r"|paid\s+(?:by\s+the\s+[Cc]ompany\s+)?to\s+"      # "paid by the Company to ..."
+    r"|(?:served?|acting|acts?)\s+as\s+(?:the\s+)?"    # "served as the ..."
+    r"|(?:retained|engaged|appointed|hired)\s+"         # "retained ..."
+    r"|introduced\s+by\s+"                              # "introduced by ..."
+    r"|engagement\s+of\s+"                              # "engagement of ..."
+    r")",
+    re.IGNORECASE,
 )
 
 ACQUIRER_PATTERN = re.compile(
@@ -310,21 +334,51 @@ _NAME_NOISE = {
 }
 
 
+def _is_valid_name(name: str) -> bool:
+    return (
+        bool(name)
+        and len(name) > 4
+        and name not in _NAME_NOISE
+        and not COUNTRY_PATTERNS.fullmatch(name)
+    )
+
+
 def extract_names(excerpt: str) -> list[str]:
-    """Return up to 5 distinct proper-name / entity-name candidates from the excerpt."""
+    """
+    Extract broker/finder/advisor names from the excerpt.
+
+    Strategy:
+      1. Role-anchored: scan for intro phrases (\"fee to\", \"retained\", \"served as\", …)
+         and grab the proper name that immediately follows — highest precision.
+      2. Fallback: if nothing anchored is found, return the first valid proper name
+         in the snippet so no filing is left entirely blank.
+    """
     seen: set[str] = set()
-    results: list[str] = []
+    anchored: list[str] = []
+
+    for intro in _ROLE_INTRO.finditer(excerpt):
+        # Grab up to 120 chars after the intro phrase and look for a name at the start
+        window = excerpt[intro.end():intro.end() + 120].lstrip()
+        m = NAME_PATTERN.match(window)
+        if m:
+            name = m.group(0).strip().rstrip(".,;")
+            if _is_valid_name(name) and name not in seen:
+                seen.add(name)
+                anchored.append(name)
+        if len(anchored) == 5:
+            break
+
+    if anchored:
+        return anchored
+
+    # Fallback: first valid proper name anywhere in the snippet
     for name in NAME_PATTERN.findall(excerpt):
         name = name.strip()
-        if (name and len(name) > 4
-                and name not in _NAME_NOISE
-                and name not in seen
-                and not COUNTRY_PATTERNS.fullmatch(name)):
+        if _is_valid_name(name) and name not in seen:
             seen.add(name)
-            results.append(name)
-            if len(results) == 5:
-                break
-    return results
+            return [name]
+
+    return []
 
 
 def extract_acquirer(text: str) -> str:
@@ -402,18 +456,52 @@ def process_hit(hit: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Checkpoint helpers
+# ---------------------------------------------------------------------------
+
+def load_checkpoint() -> set[str]:
+    """Return set of already-processed accession numbers."""
+    try:
+        with open(CHECKPOINT_FILE) as f:
+            return {line.strip() for line in f if line.strip()}
+    except FileNotFoundError:
+        return set()
+
+
+def append_checkpoint(accession: str) -> None:
+    with open(CHECKPOINT_FILE, "a") as f:
+        f.write(accession + "\n")
+
+
+def clear_checkpoint() -> None:
+    if os.path.exists(CHECKPOINT_FILE):
+        os.remove(CHECKPOINT_FILE)
+
+
+# ---------------------------------------------------------------------------
 # CSV writers
 # ---------------------------------------------------------------------------
 
-def write_filings_csv(rows: list[dict], path: str) -> None:
-    with open(path, "w", newline="", encoding="utf-8") as f:
+def write_filings_csv(rows: list[dict], path: str, append: bool = False) -> None:
+    mode = "a" if append else "w"
+    with open(path, mode, newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=FILINGS_FIELDNAMES)
-        writer.writeheader()
+        if not append:
+            writer.writeheader()
         writer.writerows(rows)
-    log.info("Wrote %d rows to %s", len(rows), path)
+    log.info("%s %d row(s) to %s", "Appended" if append else "Wrote", len(rows), path)
+
+
+def _read_filings_csv(path: str) -> list[dict]:
+    """Read all rows from an existing filings CSV (for resume-mode summary rebuild)."""
+    if not os.path.exists(path):
+        return []
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
 
 
 def write_summary_csv(rows: list[dict], path: str) -> None:
+    """Aggregate rows by broker name and write the summary CSV (always a full rewrite)."""
     by_broker: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
         by_broker[row["broker_finder_name"]].append(row)
@@ -532,43 +620,77 @@ def print_summary(all_rows: list[dict], filings_scanned: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SEC EDGAR RTO Broker/Finder Scraper")
-    parser.add_argument("--test", action="store_true",
-                        help="Run offline extraction smoke-test against synthetic filing text")
+    parser.add_argument("--test",   action="store_true",
+                        help="Run offline extraction smoke-test (no network required)")
+    parser.add_argument("--resume", action="store_true",
+                        help="Skip already-processed filings and append to existing CSVs")
+    parser.add_argument("--limit",  type=int, default=0,
+                        help="Stop after processing this many filings (0 = unlimited)")
     args = parser.parse_args()
 
     if args.test:
         run_test()
         return
 
+    resume      = args.resume
+    limit       = args.limit
+    checkpoint  = load_checkpoint() if resume else set()
+
+    if resume:
+        print(f"Resuming — {len(checkpoint)} filing(s) already processed.")
+    else:
+        clear_checkpoint()
+        # Write fresh CSV headers before the main loop so the file exists
+        write_filings_csv([], OUTPUT_FILINGS, append=False)
+
     print("=" * 70)
     print("SEC EDGAR RTO Broker/Finder Scraper")
     print(f"Date range : {START_DATE} to {END_DATE}")
     print(f"Form types : {FORM_TYPES}")
     print(f"Queries    : {len(SEARCH_QUERIES)}")
+    if limit:
+        print(f"Limit      : {limit} filings")
     print("=" * 70)
 
-    all_rows: list[dict] = []
-    seen_accessions: set[str] = set()
+    all_new_rows: list[dict] = []
+    seen_accessions: set[str] = set(checkpoint)
     filings_scanned = 0
+    done = False
 
     for idx, query in enumerate(SEARCH_QUERIES, 1):
+        if done:
+            break
         print(f"\n[{idx}/{len(SEARCH_QUERIES)}] Query: {query}")
         hits = search_efts(query)
         print(f"  Found {len(hits)} hits")
 
         for hit in hits:
+            if done:
+                break
             accession = accession_from_id(hit.get("_id", ""))
             if accession in seen_accessions:
                 continue
             seen_accessions.add(accession)
-            filings_scanned += 1
-            all_rows.extend(process_hit(hit))
 
+            rows = process_hit(hit)
+            if rows:
+                # Append rows immediately so progress is saved even if interrupted
+                write_filings_csv(rows, OUTPUT_FILINGS, append=True)
+                all_new_rows.extend(rows)
+
+            append_checkpoint(accession)
+            filings_scanned += 1
+
+            if limit and filings_scanned >= limit:
+                log.info("Reached --limit %d, stopping.", limit)
+                done = True
+
+    # Rebuild summary from the full filings CSV (includes prior runs in resume mode)
     print("\n" + "=" * 70)
-    print("Writing output files...")
-    write_filings_csv(all_rows, OUTPUT_FILINGS)
-    write_summary_csv(all_rows, OUTPUT_SUMMARY)
-    print_summary(all_rows, filings_scanned)
+    print("Rebuilding summary...")
+    all_rows_for_summary = _read_filings_csv(OUTPUT_FILINGS)
+    write_summary_csv(all_rows_for_summary, OUTPUT_SUMMARY)
+    print_summary(all_rows_for_summary, filings_scanned)
     print("\nDone.")
 
 
