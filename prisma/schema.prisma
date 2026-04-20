@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ASSET_CEO")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals         Deal[]
+  agentMessages AgentMessage[]
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  name        String
+  status      String   @default("ACTIVE")
+  description String?
+  sector      String?
+  stage       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id])
+  documents Document[]
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  url       String?
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model ServiceProvider {
+  id        String   @id @default(cuid())
+  name      String
+  type      String
+  rating    Float?
+  contact   String?
+  email     String?
+  pricing   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AgentMessage {
+  id        String   @id @default(cuid())
+  agentType String
+  role      String
+  content   String
+  sessionId String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}

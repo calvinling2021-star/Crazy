@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.moleculecapital.net"),
@@ -11,13 +10,7 @@ export const metadata: Metadata = {
   },
   description:
     "Molecule Capital is a family office investing in transformative healthcare and biotech companies across private and public markets.",
-  keywords: [
-    "healthcare investing",
-    "biotech venture capital",
-    "family office",
-    "life science investments",
-    "molecule capital",
-  ],
+  keywords: ["healthcare investing", "biotech venture capital", "family office", "life science investments", "molecule capital"],
   authors: [{ name: "Molecule Capital" }],
   openGraph: {
     type: "website",
@@ -25,27 +18,17 @@ export const metadata: Metadata = {
     url: "https://www.moleculecapital.net",
     siteName: "Molecule Capital",
     title: "Molecule Capital | Healthcare & Biotech Investment",
-    description:
-      "A family office dedicated to healthcare & biotech innovation across private and public markets.",
+    description: "A family office dedicated to healthcare & biotech innovation across private and public markets.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Molecule Capital | Healthcare & Biotech Investment",
-    description:
-      "A family office dedicated to healthcare & biotech innovation.",
+    description: "A family office dedicated to healthcare & biotech innovation.",
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true },
-  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">
       <head>
@@ -63,17 +46,14 @@ export default function RootLayout({
               "@type": "Organization",
               name: "Molecule Capital",
               url: "https://www.moleculecapital.net",
-              description:
-                "A family office investing in healthcare and biotech.",
+              description: "A family office investing in healthcare and biotech.",
               industry: "Investment Management",
             }),
           }}
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );
