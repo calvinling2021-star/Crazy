@@ -127,13 +127,41 @@ _ROLE_INTRO = re.compile(
     r"|(?:retained|engaged|appointed|hired)\s+"         # "retained ..."
     r"|introduced\s+by\s+"                              # "introduced by ..."
     r"|engagement\s+of\s+"                              # "engagement of ..."
+    r"|commission\s+(?:payable\s+)?to\s+"               # "commission payable to ..."
+    r"|placement\s+fee\s+(?:payable\s+)?to\s+"          # "placement fee to ..."
+    r"|issued\s+to\s+"                                  # "issued to ..." (for warrant-based fees)
+    r"|pursuant\s+to\s+(?:an?\s+)?(?:engagement|consulting|placement|advisory)\s+"
+    r"agreement\s+(?:dated\s+\S+\s+)?(?:with|between\s+the\s+[Cc]ompany\s+and)\s+"
     r")",
     re.IGNORECASE,
 )
 
+# Acquirer / target name extraction. Real SEC filings use a variety of phrasings
+# around reverse mergers; we look for several of them and return the first match.
 ACQUIRER_PATTERN = re.compile(
-    r"(?:acquired\s+by|acquiree|acquirer|merger\s+with|"
-    r"transaction\s+with|combining\s+with)\s+([A-Z][A-Za-z0-9\s,\.]+?)(?:[,\.]|\s{2,}|$)",
+    r"(?:"
+    r"acquired\s+by"                                       # "acquired by X"
+    r"|acquiree"
+    r"|acquirer"
+    r"|merger\s+(?:agreement\s+)?with"                     # "merger agreement with X"
+    r"|merger\s+agreement\s+dated\s+\S+\s+with"
+    r"|share\s+exchange\s+(?:agreement\s+)?with"           # "share exchange with X"
+    r"|reverse\s+(?:merger|acquisition)\s+with"            # "reverse merger with X"
+    r"|transaction\s+with"
+    r"|combining\s+with"
+    r"|combination\s+with"
+    r"|business\s+combination\s+with"
+    r"|to\s+acquire\s+all\s+(?:of\s+)?the\s+(?:outstanding\s+)?shares\s+of"
+    r"|merged\s+with\s+and\s+into"                         # "merged with and into X"
+    r"|operating\s+subsidiary[,\s]+"                       # "operating subsidiary, X"
+    r")\s+"
+    # Captured name: title-cased words + optional entity suffix, stops at comma /
+    # period / lowercase connector word.
+    r"([A-Z][A-Za-z0-9\.'&\-]*(?:\s+(?:[A-Z][A-Za-z0-9\.'&\-]*|&))*"
+    r"(?:[,\s]*(?:Inc\.?|Ltd\.?|LLC|L\.L\.C\.|Corp\.?|Co\.?|"
+    r"Corporation|Company|Group|Holdings?|PLC|N\.V\.|S\.A\.|GmbH|AG|"
+    r"Limited))?)"
+    r"(?=[,\.\s]+(?:a\s+[A-Z]|who|which|and|the|an?\s|$|\n))",
     re.IGNORECASE,
 )
 
