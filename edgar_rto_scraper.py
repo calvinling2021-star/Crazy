@@ -26,7 +26,7 @@ from bs4 import BeautifulSoup
 # Configuration
 # ---------------------------------------------------------------------------
 
-USER_AGENT = "yourname@email.com"  # <-- replace with your actual email
+USER_AGENT = "calvinling2021@gmail.com"
 
 START_DATE = "2022-01-01"
 END_DATE   = "2025-12-31"
