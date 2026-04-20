@@ -3,21 +3,20 @@ SEC EDGAR Full-Text Search Scraper
 Finds brokers, finders, and financial advisors in reverse merger / shell company filings.
 
 Usage:
-    python edgar_rto_scraper.py
+    python edgar_rto_scraper.py            # full run
+    python edgar_rto_scraper.py --test     # offline extraction smoke-test
 
 Output:
     edgar_rto_brokers.csv   - one row per extracted broker/finder mention
     broker_summary.csv      - one row per unique broker/finder (aggregated)
 """
 
+import argparse
 import csv
-import json
 import logging
 import re
 import time
 from collections import defaultdict
-from datetime import datetime
-from urllib.parse import quote_plus
 
 import requests
 from bs4 import BeautifulSoup
@@ -26,7 +25,7 @@ from bs4 import BeautifulSoup
 # Configuration
 # ---------------------------------------------------------------------------
 
-USER_AGENT = "calvinling2021@gmail.com"
+USER_AGENT = "EDGAR-RTO-Scraper/1.0 calvinling2021@gmail.com"
 
 START_DATE = "2022-01-01"
 END_DATE   = "2025-12-31"
@@ -42,12 +41,12 @@ SEARCH_QUERIES = [
     '"financial advisor" AND "reverse acquisition"',
 ]
 
-EFTS_BASE    = "https://efts.sec.gov/LATEST/search-index"
-EDGAR_VIEWER = "https://www.sec.gov/Archives/edgar/data"
-EFTS_SEARCH  = "https://efts.sec.gov/LATEST/search-index"
+EFTS_BASE     = "https://efts.sec.gov/LATEST/search-index"
+SEC_ARCHIVES  = "https://www.sec.gov/Archives/edgar/data"
 
-REQUEST_DELAY = 0.5   # seconds between requests (SEC rate limit)
-PAGE_SIZE     = 20    # results per page
+REQUEST_DELAY = 0.5    # seconds between requests (SEC rate limit)
+PAGE_SIZE     = 20     # results per EFTS page (sent as &size=)
+MAX_RETRIES   = 3      # retry attempts on transient errors
 
 OUTPUT_FILINGS = "edgar_rto_brokers.csv"
 OUTPUT_SUMMARY = "broker_summary.csv"
@@ -67,7 +66,6 @@ SUMMARY_FIELDNAMES = [
 # Patterns
 # ---------------------------------------------------------------------------
 
-# Keywords that signal a broker/finder/advisor paragraph
 BROKER_KEYWORDS = re.compile(
     r"\b(finder|broker|placement\s+agent|financial\s+advisor|advisory\s+fee|"
     r"brokerage\s+fee|consulting\s+fee|consulting\s+agreement|"
@@ -75,7 +73,6 @@ BROKER_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
-# Fee amounts: "$1,500,000", "3%", "3.5 percent", "three percent"
 FEE_PATTERN = re.compile(
     r"(\$[\d,]+(?:\.\d+)?(?:\s*(?:million|thousand))?|"
     r"\d+(?:\.\d+)?\s*%|"
@@ -83,17 +80,15 @@ FEE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Role classifier
 ROLE_PATTERNS = {
-    "placement agent": re.compile(r"\bplacement\s+agent\b", re.IGNORECASE),
-    "finder":          re.compile(r"\bfinder\b", re.IGNORECASE),
-    "broker":          re.compile(r"\bbroker\b", re.IGNORECASE),
-    "financial advisor": re.compile(r"\bfinancial\s+advisor\b", re.IGNORECASE),
-    "advisor":         re.compile(r"\badvisory\b", re.IGNORECASE),
-    "consultant":      re.compile(r"\bconsulting\b", re.IGNORECASE),
+    "placement agent":   re.compile(r"\bplacement\s+agent\b",   re.IGNORECASE),
+    "finder":            re.compile(r"\bfinder\b",               re.IGNORECASE),
+    "broker":            re.compile(r"\bbroker\b",               re.IGNORECASE),
+    "financial advisor": re.compile(r"\bfinancial\s+advisor\b",  re.IGNORECASE),
+    "advisor":           re.compile(r"\badvisory\b",             re.IGNORECASE),
+    "consultant":        re.compile(r"\bconsulting\b",           re.IGNORECASE),
 }
 
-# Countries for cross-border flag
 COUNTRY_PATTERNS = re.compile(
     r"\b(Canada|Canadian|Australia|Australian|United\s+Kingdom|UK|British|"
     r"Europe|European|China|Chinese|Israel|Israeli|Singapore|Hong\s+Kong|"
@@ -104,7 +99,7 @@ COUNTRY_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
-# Proper name heuristic: Title-cased words (2-5 consecutive), possibly with Ltd/Inc/Corp/LLC
+# Title-cased proper name, optionally followed by an entity-type suffix
 NAME_PATTERN = re.compile(
     r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,4}"
     r"(?:\s+(?:Ltd|LLC|Inc|Corp|Capital|Partners|Group|Advisors?|Securities|"
@@ -112,7 +107,6 @@ NAME_PATTERN = re.compile(
     r"International|Global|Ventures?))?)\b"
 )
 
-# Acquirer patterns: "acquired by X", "the acquiree is X", "merger with X"
 ACQUIRER_PATTERN = re.compile(
     r"(?:acquired\s+by|acquiree|acquirer|merger\s+with|"
     r"transaction\s+with|combining\s+with)\s+([A-Z][A-Za-z0-9\s,\.]+?)(?:[,\.]|\s{2,}|$)",
@@ -139,35 +133,45 @@ skipped_filings: list[str] = []
 # ---------------------------------------------------------------------------
 
 SESSION = requests.Session()
-# SEC requires: "Company/AppName Version contact@email.com"
 SESSION.headers.update({
-    "User-Agent":      f"EDGAR-RTO-Scraper/1.0 {USER_AGENT}",
+    "User-Agent":      USER_AGENT,
     "Accept":          "application/json, text/html, */*",
     "Accept-Encoding": "gzip, deflate",
 })
 
 
 def _get(url: str, params: dict | None = None) -> requests.Response | None:
-    try:
-        resp = SESSION.get(url, params=params, timeout=30)
-        resp.raise_for_status()
-        time.sleep(REQUEST_DELAY)
-        return resp
-    except requests.RequestException as exc:
-        log.warning("Request failed: %s  (%s)", url, exc)
-        return None
+    """GET with exponential-backoff retry on 5xx / connection errors."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            resp = SESSION.get(url, params=params, timeout=30)
+            if resp.status_code in (429, 500, 502, 503, 504):
+                wait = 2 ** attempt
+                log.warning("HTTP %d on attempt %d — retrying in %ds", resp.status_code, attempt, wait)
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            time.sleep(REQUEST_DELAY)
+            return resp
+        except requests.ConnectionError as exc:
+            wait = 2 ** attempt
+            log.warning("Connection error attempt %d/%d: %s — retrying in %ds", attempt, MAX_RETRIES, exc, wait)
+            time.sleep(wait)
+        except requests.RequestException as exc:
+            log.warning("Request failed: %s  (%s)", url, exc)
+            return None
+    log.error("Giving up after %d attempts: %s", MAX_RETRIES, url)
+    return None
 
 
 # ---------------------------------------------------------------------------
-# EFTS search  (paginated)
+# EFTS search (paginated)
 # ---------------------------------------------------------------------------
 
 def search_efts(query: str) -> list[dict]:
-    """Return all hits for a query across all pages."""
+    """Return all EFTS hits for a query, walking all pages."""
     hits: list[dict] = []
     from_offset = 0
-
-    encoded = quote_plus(query)
     log.info("Searching EFTS: %s", query)
 
     while True:
@@ -178,6 +182,7 @@ def search_efts(query: str) -> list[dict]:
             "enddt":     END_DATE,
             "forms":     FORM_TYPES,
             "from":      from_offset,
+            "size":      PAGE_SIZE,
         }
         resp = _get(EFTS_BASE, params=params)
         if resp is None:
@@ -186,17 +191,16 @@ def search_efts(query: str) -> list[dict]:
         try:
             data = resp.json()
         except ValueError:
-            log.warning("Non-JSON response from EFTS for query: %s", query)
+            log.warning("Non-JSON EFTS response for query: %s", query)
             break
 
-        # EFTS wraps results in hits.hits
         raw_hits = data.get("hits", {}).get("hits", [])
         if not raw_hits:
             break
 
         hits.extend(raw_hits)
         total = data.get("hits", {}).get("total", {}).get("value", 0)
-        log.info("  page offset=%d  got %d  total=%d", from_offset, len(raw_hits), total)
+        log.info("  page from=%d  got %d  total=%d", from_offset, len(raw_hits), total)
 
         from_offset += len(raw_hits)
         if from_offset >= total or len(raw_hits) < PAGE_SIZE:
@@ -209,84 +213,80 @@ def search_efts(query: str) -> list[dict]:
 # Filing document fetcher
 # ---------------------------------------------------------------------------
 
-def build_filing_url(cik: str, accession: str) -> str:
-    """Return the EDGAR filing index URL."""
-    acc_clean = accession.replace("-", "")
-    return f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type=&dateb=&owner=include&count=40"
-
-
 def accession_from_id(hit_id: str) -> str:
     """
-    EFTS hit _id is like:  0001234567-22-012345
-    or sometimes a path like edgar/data/CIK/0001234567-22-012345.txt
+    EFTS _id examples:
+      edgar/data/1234567/0001234567-22-012345.txt
+      0001234567-22-012345
+    Returns the bare accession number with dashes.
     """
-    # strip path components
     part = hit_id.split("/")[-1]
-    part = part.replace(".txt", "").replace(".htm", "")
-    return part
+    return part.replace(".txt", "").replace(".htm", "").replace(".html", "")
+
+
+def cik_from_id(hit_id: str) -> str:
+    """Extract CIK from EFTS _id path (edgar/data/<CIK>/...)."""
+    parts = hit_id.split("/")
+    if "data" in parts:
+        idx = parts.index("data")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    return ""
 
 
 def fetch_filing_text(cik: str, accession: str) -> str | None:
-    """Download raw text of the primary document in an EDGAR filing."""
+    """
+    Fetch plain text of the primary document for a filing.
+    Tries the filing index page first, falls back to the raw full-submission .txt.
+    """
     acc_nodash = accession.replace("-", "")
-    # Try the filing index page to find the primary document
-    index_url = (
-        f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{accession}-index.htm"
-    )
-    resp = _get(index_url)
 
+    # Step 1: parse the filing index to find the primary document URL
+    index_url = f"{SEC_ARCHIVES}/{cik}/{acc_nodash}/{accession}-index.htm"
+    resp = _get(index_url)
     doc_url: str | None = None
 
     if resp is not None:
         soup = BeautifulSoup(resp.text, "html.parser")
-        # Look for the primary document link in the filing index table
         for row in soup.select("table tr"):
             cells = row.find_all("td")
-            if len(cells) >= 3:
-                doc_type = cells[3].get_text(strip=True) if len(cells) > 3 else ""
-                link = cells[2].find("a") if len(cells) > 2 else None
-                if link and link.get("href"):
-                    href = link["href"]
-                    # prefer .htm or .txt primary documents
-                    if href.endswith((".htm", ".txt", ".html")):
-                        doc_url = "https://www.sec.gov" + href
-                        break
+            if len(cells) < 3:
+                continue
+            link = cells[2].find("a")
+            if link and link.get("href", "").endswith((".htm", ".html", ".txt")):
+                doc_url = "https://www.sec.gov" + link["href"]
+                break
 
+    # Step 2: fall back to raw full-submission text
     if doc_url is None:
-        # Fall back: try the raw .txt full submission
-        doc_url = (
-            f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{accession}.txt"
-        )
+        doc_url = f"{SEC_ARCHIVES}/{cik}/{acc_nodash}/{accession}.txt"
 
     resp2 = _get(doc_url)
     if resp2 is None:
         return None
 
-    # Strip HTML tags to get plain text
     soup2 = BeautifulSoup(resp2.content, "html.parser")
     return soup2.get_text(separator=" ", strip=True)
 
 
 # ---------------------------------------------------------------------------
-# Text extraction
+# Text extraction helpers
 # ---------------------------------------------------------------------------
 
-CONTEXT_CHARS = 500  # characters each side of keyword match
+CONTEXT_CHARS = 500
 
 
 def extract_broker_snippets(text: str) -> list[dict]:
-    """Find all broker/finder keyword occurrences and return context snippets."""
     snippets = []
+    seen_keys: set[str] = set()
     for match in BROKER_KEYWORDS.finditer(text):
-        start = max(0, match.start() - CONTEXT_CHARS)
-        end   = min(len(text), match.end() + CONTEXT_CHARS)
-        snippet = text[start:end].replace("\n", " ").replace("\r", " ")
-        # collapse whitespace
-        snippet = re.sub(r"\s{2,}", " ", snippet)
-        snippets.append({
-            "keyword": match.group(),
-            "excerpt": snippet,
-        })
+        start   = max(0, match.start() - CONTEXT_CHARS)
+        end     = min(len(text), match.end() + CONTEXT_CHARS)
+        excerpt = re.sub(r"\s{2,}", " ", text[start:end].replace("\n", " ").replace("\r", " "))
+        key     = excerpt[:80]
+        if key not in seen_keys:
+            seen_keys.add(key)
+            snippets.append({"keyword": match.group(), "excerpt": excerpt})
     return snippets
 
 
@@ -302,40 +302,38 @@ def extract_fee(excerpt: str) -> str:
     return m.group(0).strip() if m else ""
 
 
+_NAME_NOISE = {
+    "The", "This", "In", "As", "At", "On", "For", "By", "Of",
+    "United States", "New York", "Common Stock", "Securities Act",
+    "Exchange Act", "Board Of Directors", "Annual Report",
+    "Form", "Item", "Section", "Exhibit",
+}
+
+
 def extract_names(excerpt: str) -> list[str]:
-    """Heuristically pull proper names / entity names from the excerpt."""
-    candidates = NAME_PATTERN.findall(excerpt)
-    # Filter out common false-positives (section headers, states, etc.)
-    noise = {
-        "The", "This", "In", "As", "At", "On", "For", "By", "Of",
-        "United States", "New York", "Common Stock", "Securities Act",
-        "Exchange Act", "Board Of Directors", "Annual Report",
-        "Form", "Item", "Section", "Exhibit",
-    }
-    names = []
-    for name in candidates:
-        name = name.strip()
-        if name and name not in noise and len(name) > 4:
-            names.append(name)
-    # deduplicate while preserving order
+    """Return up to 5 distinct proper-name / entity-name candidates from the excerpt."""
     seen: set[str] = set()
-    unique = []
-    for n in names:
-        if n not in seen:
-            seen.add(n)
-            unique.append(n)
-    return unique[:5]  # return top 5 candidates
+    results: list[str] = []
+    for name in NAME_PATTERN.findall(excerpt):
+        name = name.strip()
+        if (name and len(name) > 4
+                and name not in _NAME_NOISE
+                and name not in seen
+                and not COUNTRY_PATTERNS.fullmatch(name)):
+            seen.add(name)
+            results.append(name)
+            if len(results) == 5:
+                break
+    return results
 
 
 def extract_acquirer(text: str) -> str:
     m = ACQUIRER_PATTERN.search(text)
-    if m:
-        return m.group(1).strip()[:120]
-    return ""
+    return m.group(1).strip()[:120] if m else ""
 
 
-def extract_country(excerpt: str) -> str:
-    m = COUNTRY_PATTERNS.search(excerpt)
+def extract_country(text: str) -> str:
+    m = COUNTRY_PATTERNS.search(text)
     return m.group(0).strip() if m else ""
 
 
@@ -345,35 +343,22 @@ def extract_ticker(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Main processing
+# Per-filing processing
 # ---------------------------------------------------------------------------
 
 def process_hit(hit: dict) -> list[dict]:
-    """Return a list of row dicts (one per broker mention) for a single EDGAR hit."""
-    src = hit.get("_source", {})
-    hit_id = hit.get("_id", "")
+    src        = hit.get("_source", {})
+    hit_id     = hit.get("_id", "")
 
     filing_date = src.get("file_date") or src.get("display_date_filed", "")
     form_type   = src.get("form_type", "")
     pubco_name  = src.get("entity_name", "")
-    cik_raw     = src.get("file_num", "") or ""
 
-    # CIK is embedded in the _id path: edgar/data/CIK/accession
-    cik = ""
-    id_parts = hit_id.split("/")
-    if "data" in id_parts:
-        idx = id_parts.index("data")
-        if idx + 1 < len(id_parts):
-            cik = id_parts[idx + 1]
-
-    if not cik:
-        cik = cik_raw
-
+    cik       = cik_from_id(hit_id) or src.get("file_num", "")
     accession = accession_from_id(hit_id)
     acc_nodash = accession.replace("-", "")
     filing_url = (
-        f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc_nodash}/{accession}-index.htm"
-        if cik else ""
+        f"{SEC_ARCHIVES}/{cik}/{acc_nodash}/{accession}-index.htm" if cik else ""
     )
 
     log.info("  Fetching: %s  [%s] %s  (%s)", filing_date, form_type, pubco_name[:60], accession)
@@ -384,48 +369,33 @@ def process_hit(hit: dict) -> list[dict]:
         skipped_filings.append(accession)
         return []
 
-    ticker    = extract_ticker(text[:5000])  # ticker usually near top
-    acquirer  = extract_acquirer(text)
-    snippets  = extract_broker_snippets(text)
+    ticker   = extract_ticker(text[:5000])
+    acquirer = extract_acquirer(text)
+    snippets = extract_broker_snippets(text)
 
-    if not snippets:
-        return []
-
-    rows = []
-    seen_excerpts: set[str] = set()
-
+    rows: list[dict] = []
     for snip in snippets:
-        excerpt = snip["excerpt"]
-        # Deduplicate nearly identical excerpts within same filing
-        key = excerpt[:80]
-        if key in seen_excerpts:
-            continue
-        seen_excerpts.add(key)
-
+        excerpt     = snip["excerpt"]
         role        = classify_role(excerpt)
         fee         = extract_fee(excerpt)
         country     = extract_country(excerpt)
-        names       = extract_names(excerpt)
+        names       = extract_names(excerpt) or ["[name not parsed]"]
         acq_country = extract_country(acquirer) or country
-
-        if not names:
-            # Still record even without a name (for manual review)
-            names = ["[name not parsed]"]
 
         for name in names:
             rows.append({
-                "filing_date":           filing_date,
-                "form_type":             form_type,
-                "pubco_name":            pubco_name,
-                "cik":                   cik,
-                "ticker":                ticker,
-                "broker_finder_name":    name,
-                "role":                  role,
+                "filing_date":              filing_date,
+                "form_type":                form_type,
+                "pubco_name":               pubco_name,
+                "cik":                      cik,
+                "ticker":                   ticker,
+                "broker_finder_name":       name,
+                "role":                     role,
                 "fee_amount_or_percentage": fee,
-                "acquirer_name":         acquirer[:120],
-                "acquirer_country":      acq_country,
-                "filing_url":            filing_url,
-                "relevant_excerpt":      excerpt[:800],
+                "acquirer_name":            acquirer,
+                "acquirer_country":         acq_country,
+                "filing_url":               filing_url,
+                "relevant_excerpt":         excerpt[:800],
             })
 
     return rows
@@ -444,82 +414,101 @@ def write_filings_csv(rows: list[dict], path: str) -> None:
 
 
 def write_summary_csv(rows: list[dict], path: str) -> None:
-    """Aggregate by broker_finder_name and write summary CSV."""
-    # group rows
     by_broker: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
-        name = row["broker_finder_name"]
-        by_broker[name].append(row)
+        by_broker[row["broker_finder_name"]].append(row)
 
-    summary_rows = []
-    for name, broker_rows in sorted(by_broker.items(), key=lambda x: -len(x[1])):
-        pubcos = list(dict.fromkeys(r["pubco_name"] for r in broker_rows))  # preserve order, dedupe
-        dates  = [r["filing_date"] for r in broker_rows if r["filing_date"]]
-        cross_border = any(r["acquirer_country"] for r in broker_rows)
-
-        summary_rows.append({
+    summary: list[dict] = []
+    for name, brows in sorted(by_broker.items(), key=lambda x: -len(x[1])):
+        pubcos = list(dict.fromkeys(r["pubco_name"] for r in brows))
+        dates  = sorted(r["filing_date"] for r in brows if r["filing_date"])
+        summary.append({
             "broker_finder_name": name,
-            "deal_count":         len(set(r["cik"] for r in broker_rows)),
+            "deal_count":         len({r["cik"] for r in brows}),
             "deals_list":         "; ".join(pubcos[:20]),
-            "date_range_active":  f"{min(dates)} to {max(dates)}" if dates else "",
-            "cross_border_flag":  "yes" if cross_border else "no",
+            "date_range_active":  f"{dates[0]} to {dates[-1]}" if dates else "",
+            "cross_border_flag":  "yes" if any(r["acquirer_country"] for r in brows) else "no",
         })
 
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=SUMMARY_FIELDNAMES)
         writer.writeheader()
-        writer.writerows(summary_rows)
-    log.info("Wrote %d broker summary rows to %s", len(summary_rows), path)
+        writer.writerows(summary)
+    log.info("Wrote %d broker summary rows to %s", len(summary), path)
+
+
+# ---------------------------------------------------------------------------
+# Offline smoke-test
+# ---------------------------------------------------------------------------
+
+_TEST_FILING = """
+ACME Shell Corp (OTCQB: ACME) announced today the completion of its reverse merger
+with Dragon Tech Ltd, a company incorporated in Hong Kong.
+
+In connection with the transaction, the Company paid a finder's fee of $250,000 to
+Apex Capital Partners LLC, who served as finder and introduced the parties. Apex
+Capital Partners LLC is registered in Nevada.
+
+Additionally, XYZ Securities Inc. acted as placement agent and received a brokerage
+fee equal to 5% of the gross proceeds raised. The financial advisor to the acquirer
+was Goldstone Advisory Group, based in Toronto, Canada.
+
+The merger was structured as a reverse acquisition whereby Dragon Tech Ltd acquired
+control of ACME Shell Corp.
+"""
+
+
+def run_test() -> None:
+    print("=" * 70)
+    print("OFFLINE EXTRACTION SMOKE-TEST")
+    print("=" * 70)
+    snippets = extract_broker_snippets(_TEST_FILING)
+    print(f"Snippets found: {len(snippets)}\n")
+
+    rows: list[dict] = []
+    for snip in snippets:
+        excerpt = snip["excerpt"]
+        role    = classify_role(excerpt)
+        fee     = extract_fee(excerpt)
+        names   = extract_names(excerpt) or ["[name not parsed]"]
+        country = extract_country(excerpt)
+        print(f"  keyword  : {snip['keyword']}")
+        print(f"  role     : {role}")
+        print(f"  fee      : {fee}")
+        print(f"  names    : {names}")
+        print(f"  country  : {country}")
+        print(f"  excerpt  : {excerpt[:120]}...")
+        print()
+        for name in names:
+            rows.append({
+                "filing_date": "2024-03-15", "form_type": "8-K",
+                "pubco_name": "ACME Shell Corp", "cik": "0001234567",
+                "ticker": extract_ticker(_TEST_FILING),
+                "broker_finder_name": name, "role": role,
+                "fee_amount_or_percentage": fee,
+                "acquirer_name": extract_acquirer(_TEST_FILING),
+                "acquirer_country": country,
+                "filing_url": "https://www.sec.gov/test",
+                "relevant_excerpt": excerpt[:800],
+            })
+
+    write_filings_csv(rows, OUTPUT_FILINGS)
+    write_summary_csv(rows, OUTPUT_SUMMARY)
+    print(f"Test complete — {len(rows)} row(s) written to {OUTPUT_FILINGS}")
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
-def main() -> None:
-    print("=" * 70)
-    print("SEC EDGAR RTO Broker/Finder Scraper")
-    print(f"Date range: {START_DATE} to {END_DATE}")
-    print(f"Form types: {FORM_TYPES}")
-    print(f"Queries   : {len(SEARCH_QUERIES)}")
-    print("=" * 70)
-
-    all_rows: list[dict] = []
-    seen_accessions: set[str] = set()
-    filings_scanned = 0
-
-    for query_idx, query in enumerate(SEARCH_QUERIES, 1):
-        print(f"\n[{query_idx}/{len(SEARCH_QUERIES)}] Query: {query}")
-        hits = search_efts(query)
-        print(f"  Found {len(hits)} hits")
-
-        for hit in hits:
-            accession = accession_from_id(hit.get("_id", ""))
-            if accession in seen_accessions:
-                log.info("  Duplicate accession, skipping: %s", accession)
-                continue
-            seen_accessions.add(accession)
-            filings_scanned += 1
-
-            rows = process_hit(hit)
-            all_rows.extend(rows)
-
-    # Write outputs
-    print("\n" + "=" * 70)
-    print("Writing output files...")
-    write_filings_csv(all_rows, OUTPUT_FILINGS)
-    write_summary_csv(all_rows, OUTPUT_SUMMARY)
-
-    # Summary stats
-    unique_brokers = set(r["broker_finder_name"] for r in all_rows
-                         if r["broker_finder_name"] != "[name not parsed]")
-    by_broker_count: dict[str, int] = defaultdict(int)
+def print_summary(all_rows: list[dict], filings_scanned: int) -> None:
+    unique_brokers = {r["broker_finder_name"] for r in all_rows
+                      if r["broker_finder_name"] != "[name not parsed]"}
+    by_count: dict[str, int] = defaultdict(int)
     for r in all_rows:
         name = r["broker_finder_name"]
         if name != "[name not parsed]":
-            by_broker_count[name] += 1
-
-    top10 = sorted(by_broker_count.items(), key=lambda x: -x[1])[:10]
+            by_count[name] += 1
 
     print("\n" + "=" * 70)
     print("SUMMARY")
@@ -530,7 +519,7 @@ def main() -> None:
     print(f"Unique brokers/finders  : {len(unique_brokers)}")
     print()
     print("Top 10 most active brokers/finders by mention count:")
-    for rank, (name, count) in enumerate(top10, 1):
+    for rank, (name, count) in enumerate(sorted(by_count.items(), key=lambda x: -x[1])[:10], 1):
         print(f"  {rank:2}. {name[:60]:<62} {count:4} mention(s)")
 
     if skipped_filings:
@@ -540,6 +529,46 @@ def main() -> None:
         if len(skipped_filings) > 20:
             print(f"  ... and {len(skipped_filings) - 20} more")
 
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="SEC EDGAR RTO Broker/Finder Scraper")
+    parser.add_argument("--test", action="store_true",
+                        help="Run offline extraction smoke-test against synthetic filing text")
+    args = parser.parse_args()
+
+    if args.test:
+        run_test()
+        return
+
+    print("=" * 70)
+    print("SEC EDGAR RTO Broker/Finder Scraper")
+    print(f"Date range : {START_DATE} to {END_DATE}")
+    print(f"Form types : {FORM_TYPES}")
+    print(f"Queries    : {len(SEARCH_QUERIES)}")
+    print("=" * 70)
+
+    all_rows: list[dict] = []
+    seen_accessions: set[str] = set()
+    filings_scanned = 0
+
+    for idx, query in enumerate(SEARCH_QUERIES, 1):
+        print(f"\n[{idx}/{len(SEARCH_QUERIES)}] Query: {query}")
+        hits = search_efts(query)
+        print(f"  Found {len(hits)} hits")
+
+        for hit in hits:
+            accession = accession_from_id(hit.get("_id", ""))
+            if accession in seen_accessions:
+                continue
+            seen_accessions.add(accession)
+            filings_scanned += 1
+            all_rows.extend(process_hit(hit))
+
+    print("\n" + "=" * 70)
+    print("Writing output files...")
+    write_filings_csv(all_rows, OUTPUT_FILINGS)
+    write_summary_csv(all_rows, OUTPUT_SUMMARY)
+    print_summary(all_rows, filings_scanned)
     print("\nDone.")
 
 
