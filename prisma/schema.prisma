@@ -56,6 +56,15 @@ model ServiceProvider {
   updatedAt DateTime @updatedAt
 }
 
+model AgentConfig {
+  id           String   @id @default(cuid())
+  agentType    String   @unique
+  label        String
+  description  String
+  systemPrompt String
+  updatedAt    DateTime @updatedAt
+}
+
 model AgentMessage {
   id        String   @id @default(cuid())
   agentType String

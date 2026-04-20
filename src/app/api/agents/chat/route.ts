@@ -39,10 +39,13 @@ export async function POST(req: NextRequest) {
     data: { agentType, role: "user", content: message, sessionId, userId: session.user.id },
   });
 
+  const dbConfig = await prisma.agentConfig.findUnique({ where: { agentType } });
+  const systemPrompt = dbConfig?.systemPrompt ?? AGENTS[agentType].systemPrompt;
+
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
-    system: AGENTS[agentType].systemPrompt,
+    system: systemPrompt,
     messages,
   });
 
