@@ -1,7 +1,11 @@
 import path from "path";
 import { mkdir } from "fs/promises";
 
-export const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
+// Vercel's filesystem is read-only except for /tmp (ephemeral per instance).
+// Local/dev uses ./data/uploads. Persistent storage should go through Google Drive.
+export const UPLOAD_DIR = process.env.VERCEL
+  ? path.join("/tmp", "uploads")
+  : path.join(process.cwd(), "data", "uploads");
 
 export async function ensureUploadDir() {
   await mkdir(UPLOAD_DIR, { recursive: true });
