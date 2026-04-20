@@ -17,6 +17,7 @@ model User {
 
   deals         Deal[]
   agentMessages AgentMessage[]
+  uploadedFiles UploadedFile[]
 }
 
 model Deal {
@@ -29,9 +30,10 @@ model Deal {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  ownerId   String
-  owner     User       @relation(fields: [ownerId], references: [id])
-  documents Document[]
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id])
+  documents     Document[]
+  uploadedFiles UploadedFile[]
 }
 
 model Document {
@@ -41,6 +43,38 @@ model Document {
   dealId    String
   deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model UploadedFile {
+  id         String   @id @default(cuid())
+  filename   String
+  storedName String
+  mimeType   String
+  sizeBytes  Int
+  source     String   @default("upload")
+  externalId String?
+  dealId     String?
+  deal       Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([dealId])
+  @@index([userId])
+  @@index([externalId])
+}
+
+// Org-level integrations — one per provider for the whole firm
+model Integration {
+  id           String    @id @default(cuid())
+  provider     String    @unique
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  accountEmail String?
+  metadata     String?   // JSON: extra fields per provider (botToken, webhookUrl, etc.)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model ServiceProvider {

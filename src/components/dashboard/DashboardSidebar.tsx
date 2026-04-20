@@ -9,6 +9,8 @@ import {
   BuildingOfficeIcon,
   CpuChipIcon,
   UsersIcon,
+  DocumentIcon,
+  LinkIcon,
   ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
@@ -27,11 +29,13 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: HomeIcon, roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
-  { href: "/dashboard/deals", label: "Deals", icon: BriefcaseIcon, roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
-  { href: "/dashboard/providers", label: "Providers", icon: BuildingOfficeIcon, roles: ["PRINCIPAL", "OPS"] },
-  { href: "/dashboard/agents", label: "AI Agents", icon: CpuChipIcon, roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
-  { href: "/dashboard/users", label: "Users", icon: UsersIcon, roles: ["PRINCIPAL"] },
+  { href: "/dashboard",              label: "Overview",     icon: HomeIcon,           roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
+  { href: "/dashboard/deals",        label: "Deals",        icon: BriefcaseIcon,      roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
+  { href: "/dashboard/documents",    label: "Documents",    icon: DocumentIcon,       roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
+  { href: "/dashboard/providers",    label: "Providers",    icon: BuildingOfficeIcon, roles: ["PRINCIPAL", "OPS"] },
+  { href: "/dashboard/agents",       label: "AI Agents",    icon: CpuChipIcon,        roles: ["PRINCIPAL", "OPS", "ASSET_CEO"] },
+  { href: "/dashboard/integrations", label: "Integrations", icon: LinkIcon,           roles: ["PRINCIPAL", "OPS"] },
+  { href: "/dashboard/users",        label: "Users",        icon: UsersIcon,          roles: ["PRINCIPAL"] },
 ];
 
 interface Props {
@@ -40,7 +44,6 @@ interface Props {
 
 export default function DashboardSidebar({ user }: Props) {
   const pathname = usePathname();
-
   const visible = NAV.filter((item) => item.roles.includes(user.role));
 
   return (
