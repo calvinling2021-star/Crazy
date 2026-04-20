@@ -15,9 +15,9 @@ async function main() {
   ]);
 
   const calvin = await prisma.user.upsert({
-    where: { email: "calvin@moleculecapital.com" },
+    where: { email: "calvinling@moleculecapital.net" },
     update: {},
-    create: { email: "calvin@moleculecapital.com", name: "Calvin Ling", password: calvinPwd, role: "PRINCIPAL" },
+    create: { email: "calvinling@moleculecapital.net", name: "Calvin Ling", password: calvinPwd, role: "PRINCIPAL" },
   });
 
   await prisma.user.upsert({
@@ -59,7 +59,7 @@ async function main() {
     await prisma.serviceProvider.upsert({ where: { id: p.id }, update: {}, create: p });
   }
 
-  console.log("✓ Users: calvin@moleculecapital.com / lauren@moleculecapital.com / ceo@assetcompany.com");
+  console.log("✓ Users: calvinling@moleculecapital.net / lauren@moleculecapital.com / ceo@assetcompany.com");
   console.log("✓ Deals and service providers seeded");
 }
 
