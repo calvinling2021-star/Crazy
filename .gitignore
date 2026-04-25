@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# EDGAR scraper runtime state (processed accession list for --resume)
+.edgar_scraper_checkpoint
+
+# Python
+__pycache__/
+*.pyc
+.venv/
