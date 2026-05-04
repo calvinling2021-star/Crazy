@@ -5,11 +5,11 @@ export interface TeamMember {
   initials: string;
 }
 
-export interface PortfolioCompany {
+export interface MusicStyle {
   name: string;
   description: string;
-  sector: "Therapeutics" | "MedTech" | "Digital Health";
-  stage: string;
+  genre: "Electronic" | "Acoustic" | "Orchestral" | "Urban";
+  mood: string;
 }
 
 export interface Stat {
