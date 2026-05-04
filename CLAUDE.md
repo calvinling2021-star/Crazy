@@ -52,4 +52,26 @@ The color palette and font are defined as Tailwind v4 CSS custom properties in `
 - **Navigation links** are the single source of truth in `src/lib/constants.ts` (`NAV_LINKS`). Site config (name, email, URL) is also in `SITE_CONFIG` there.
 - **`clsx`** is used for all conditional class merging.
 - **TypeScript strict mode** is enabled — avoid `any`, use the types in `src/lib/types.ts`.
-- **Static export constraints**: No `next/image` optimization (images are `unoptimized: true`), no server components that fetch data at runtime, no API routes.
+
+## Don't
+
+- **Don't use `<Image>` from `next/image` with optimization** — images are `unoptimized: true`; use a plain `<img>` tag or pass `unoptimized` explicitly.
+- **Don't add API routes** — `output: "export"` makes them impossible; this is a fully static site.
+- **Don't fetch data at runtime in Server Components** — all data comes from `src/data/` at build time.
+- **Don't use `whileInView` directly on `motion.*` elements** — use the `<AnimatedSection>` wrapper instead, which handles viewport margin and `once: true`.
+- **Don't hardcode nav links or site config** — always read from `src/lib/constants.ts`.
+
+## Verification Order
+
+After making changes, run in this order:
+
+```bash
+npm run lint     # 1. catch style/type issues early
+npm run build    # 2. confirm static export succeeds
+```
+
+TypeScript errors surface during `build`; there is no standalone `tsc` script.
+
+## Commit Messages
+
+Write commit messages as a working engineer would: short, direct, lowercase imperative subject line. Describe what changed and why if non-obvious. No bullet lists, no marketing language, no "refactor to improve maintainability"-style filler.
