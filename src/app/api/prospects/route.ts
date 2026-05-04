@@ -16,6 +16,10 @@ interface ProspectRow {
   ceo_title: string | null;
   ceo_conf: number | null;
   notes: string | null;
+  outreach_stage: string | null;
+  last_contacted_at: string | null;
+  assigned_to: string | null;
+  follow_up_at: string | null;
 }
 
 interface ContactRow {
@@ -44,11 +48,15 @@ export async function GET() {
           c.cik, c.ticker, c.name, c.market_cap, c.exchange,
           COALESCE(SUM(s.score_delta), 0) AS delinquency_score,
           GROUP_CONCAT(DISTINCT s.signal_type)  AS signal_types,
-          ceo.id         AS ceo_id,
-          ceo.name       AS ceo_name,
-          ceo.title      AS ceo_title,
-          ceo.confidence AS ceo_conf,
-          ceo.notes      AS notes
+          ceo.id                AS ceo_id,
+          ceo.name              AS ceo_name,
+          ceo.title             AS ceo_title,
+          ceo.confidence        AS ceo_conf,
+          ceo.notes             AS notes,
+          ceo.outreach_stage    AS outreach_stage,
+          ceo.last_contacted_at AS last_contacted_at,
+          ceo.assigned_to       AS assigned_to,
+          ceo.follow_up_at      AS follow_up_at
         FROM companies c
         LEFT JOIN signals s   ON s.cik   = c.cik
         LEFT JOIN ceos   ceo  ON ceo.cik = c.cik AND ceo.is_current = 1
@@ -84,6 +92,7 @@ export async function GET() {
 
     const result = prospects.map((p) => ({
       ...p,
+      outreach_stage: p.outreach_stage ?? "new",
       contacts: p.ceo_id != null ? (byId[p.ceo_id] ?? []) : [],
     }));
 

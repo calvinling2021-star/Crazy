@@ -21,15 +21,19 @@ CREATE INDEX IF NOT EXISTS idx_companies_ticker ON companies(ticker);
 CREATE INDEX IF NOT EXISTS idx_companies_mktcap ON companies(market_cap);
 
 CREATE TABLE IF NOT EXISTS ceos (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    cik             TEXT NOT NULL,
-    name            TEXT NOT NULL,
-    title           TEXT,
-    source_filing   TEXT,
-    confidence      REAL,
-    is_current      INTEGER DEFAULT 1,
-    notes           TEXT,
-    captured_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    cik                 TEXT NOT NULL,
+    name                TEXT NOT NULL,
+    title               TEXT,
+    source_filing       TEXT,
+    confidence          REAL,
+    is_current          INTEGER DEFAULT 1,
+    notes               TEXT,
+    outreach_stage      TEXT DEFAULT 'new',
+    last_contacted_at   TIMESTAMP,
+    assigned_to         TEXT,
+    follow_up_at        DATE,
+    captured_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(cik) REFERENCES companies(cik)
 );
 CREATE INDEX IF NOT EXISTS idx_ceos_cik ON ceos(cik);
@@ -51,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_contacts_value ON contacts(value);
 CREATE TABLE IF NOT EXISTS signals (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     cik             TEXT NOT NULL,
-    signal_type     TEXT NOT NULL,        -- 'NT-10K' | 'deficiency' | 'going_concern' | 'strategic_alternatives' | ...
+    signal_type     TEXT NOT NULL,
     score_delta     REAL NOT NULL,
     evidence_url    TEXT,
     filing_date     DATE,
@@ -60,6 +64,18 @@ CREATE TABLE IF NOT EXISTS signals (
 );
 CREATE INDEX IF NOT EXISTS idx_signals_cik ON signals(cik);
 CREATE INDEX IF NOT EXISTS idx_signals_type ON signals(signal_type);
+
+CREATE TABLE IF NOT EXISTS activities (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ceo_id          INTEGER NOT NULL,
+    type            TEXT NOT NULL,   -- 'email_sent'|'linkedin_msg'|'call_scheduled'
+                                     -- |'call_done'|'proposal_sent'|'term_sent'|'note'
+    body            TEXT,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by      TEXT,
+    FOREIGN KEY(ceo_id) REFERENCES ceos(id)
+);
+CREATE INDEX IF NOT EXISTS idx_activities_ceo ON activities(ceo_id);
 
 CREATE VIEW IF NOT EXISTS v_hot_prospects AS
 SELECT
@@ -74,10 +90,18 @@ HAVING delinquency_score >= 40
 ORDER BY delinquency_score DESC;
 """
 
+_CRM_MIGRATIONS = (
+    "ALTER TABLE ceos ADD COLUMN notes TEXT",
+    "ALTER TABLE ceos ADD COLUMN outreach_stage TEXT DEFAULT 'new'",
+    "ALTER TABLE ceos ADD COLUMN last_contacted_at TIMESTAMP",
+    "ALTER TABLE ceos ADD COLUMN assigned_to TEXT",
+    "ALTER TABLE ceos ADD COLUMN follow_up_at DATE",
+)
+
 
 def _migrate(conn: sqlite3.Connection) -> None:
     """Idempotent migrations for columns added after initial schema creation."""
-    for stmt in ("ALTER TABLE ceos ADD COLUMN notes TEXT",):
+    for stmt in _CRM_MIGRATIONS:
         try:
             conn.execute(stmt)
             conn.commit()
@@ -123,14 +147,40 @@ def upsert_company(cur, cik: str, ticker: str, name: str,
 
 def add_signal(cur, cik: str, signal_type: str, score_delta: float,
                evidence_url: str | None = None, filing_date: str | None = None) -> None:
+    """Insert a signal, skipping duplicates (same cik + signal_type + filing_date)."""
     cur.execute("""
         INSERT INTO signals (cik, signal_type, score_delta, evidence_url, filing_date)
-        VALUES (?, ?, ?, ?, ?)
-    """, (cik, signal_type, score_delta, evidence_url, filing_date))
+        SELECT ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+            SELECT 1 FROM signals
+            WHERE cik=? AND signal_type=? AND COALESCE(filing_date,'')=COALESCE(?,'')
+        )
+    """, (cik, signal_type, score_delta, evidence_url, filing_date,
+          cik, signal_type, filing_date))
 
 
 def set_ceo_notes(cur, ceo_id: int, notes: str) -> None:
     cur.execute("UPDATE ceos SET notes=? WHERE id=?", (notes, ceo_id))
+
+
+def update_ceo_crm(cur, ceo_id: int, **fields) -> None:
+    """Update any combination of CRM fields on a ceo row."""
+    allowed = {"notes", "outreach_stage", "last_contacted_at", "assigned_to", "follow_up_at"}
+    items = [(k, v) for k, v in fields.items() if k in allowed]
+    if not items:
+        return
+    sets = ", ".join(f"{k}=?" for k, _ in items)
+    vals = [v for _, v in items] + [ceo_id]
+    cur.execute(f"UPDATE ceos SET {sets} WHERE id=?", vals)
+
+
+def add_activity(cur, ceo_id: int, type_: str,
+                 body: str | None = None, created_by: str | None = None) -> int:
+    cur.execute(
+        "INSERT INTO activities (ceo_id, type, body, created_by) VALUES (?, ?, ?, ?)",
+        (ceo_id, type_, body, created_by),
+    )
+    return cur.lastrowid
 
 
 def upsert_manual_contact(cur, ceo_id: int, channel: str, value: str) -> int:
