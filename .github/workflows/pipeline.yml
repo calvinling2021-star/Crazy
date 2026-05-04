@@ -1,0 +1,92 @@
+name: Daily Pipeline
+
+on:
+  # Run every day at 7:00 AM UTC
+  schedule:
+    - cron: "0 7 * * *"
+  # Allow one-click manual run from GitHub → Actions tab
+  workflow_dispatch:
+    inputs:
+      max_cap:
+        description: "Max market cap ($)"
+        default: "25000000"
+        required: false
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      # ── Restore DB from last successful run ────────────────────────────────
+      - name: Restore database from cache
+        id: cache-db
+        uses: actions/cache@v4
+        with:
+          path: pipeline/data/ceos.db
+          key: ceos-db-${{ github.run_id }}
+          restore-keys: |
+            ceos-db-
+
+      # ── Seed on first run (no cached DB) ──────────────────────────────────
+      - name: Seed database (first run only)
+        if: steps.cache-db.outputs.cache-hit != 'true'
+        run: python -m pipeline.seed_demo
+
+      # ── Run the full pipeline ──────────────────────────────────────────────
+      - name: Run daily pipeline
+        run: |
+          python -m pipeline.main daily \
+            --max-cap ${{ github.event.inputs.max_cap || '25000000' }}
+        env:
+          HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
+          NEVERBOUNCE_API_KEY: ${{ secrets.NEVERBOUNCE_API_KEY }}
+          SMTP_VERIFY: "0"    # skip slow SMTP probes in CI
+
+      # ── Upload DB as artifact (downloadable from Actions tab) ──────────────
+      - name: Upload database artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ceos-db-${{ github.run_id }}
+          path: pipeline/data/ceos.db
+          retention-days: 30
+
+      # ── Print summary ──────────────────────────────────────────────────────
+      - name: Print prospect summary
+        run: |
+          python - <<'EOF'
+          from pipeline import db
+          conn = db.connect()
+          cur = conn.cursor()
+          cur.execute("""
+            SELECT c.ticker, c.name,
+                   COALESCE(SUM(s.score_delta),0) AS score,
+                   (SELECT COUNT(*) FROM contacts ct
+                    JOIN ceos e ON e.id=ct.ceo_id WHERE e.cik=c.cik) AS contacts
+            FROM companies c
+            LEFT JOIN signals s ON s.cik=c.cik
+            WHERE c.market_cap < 25000000
+            GROUP BY c.cik HAVING score >= 40
+            ORDER BY score DESC
+          """)
+          rows = cur.fetchall()
+          print(f"\n{'='*60}")
+          print(f"  {len(rows)} hot prospects  (score >= 40, cap < $25M)")
+          print(f"{'='*60}")
+          for r in rows:
+              print(f"  {r['ticker']:<6}  score={int(r['score']):<4}  contacts={r['contacts']}  {r['name']}")
+          conn.close()
+          EOF

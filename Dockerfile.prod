@@ -1,0 +1,57 @@
+# ── Stage 1: Build Next.js ────────────────────────────────────────────────────
+FROM node:20-slim AS web-builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY next.config.ts tsconfig.json postcss.config.mjs ./
+COPY src/ ./src/
+COPY public/ ./public/
+RUN npm run build
+
+# ── Stage 2: Runtime (Python 3.12 + Node 20) ─────────────────────────────────
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    NODE_ENV=production \
+    PORT=3000
+
+# Install Node.js 20
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ── Python pipeline ───────────────────────────────────────────────────────────
+COPY pipeline/requirements.txt ./pipeline/
+RUN pip install -r pipeline/requirements.txt
+
+COPY pipeline/ ./pipeline/
+COPY run.sh ./
+RUN chmod +x run.sh
+
+# ── Next.js app (pre-built) ───────────────────────────────────────────────────
+COPY --from=web-builder /app/.next            ./.next
+COPY --from=web-builder /app/node_modules     ./node_modules
+COPY --from=web-builder /app/public           ./public
+COPY package.json next.config.ts ./
+
+# ── Startup ───────────────────────────────────────────────────────────────────
+COPY start.sh .env.example ./
+RUN chmod +x start.sh
+
+# SQLite DB + feed checkpoints persist across restarts on a mounted volume.
+VOLUME ["/app/pipeline/data"]
+EXPOSE 3000
+
+CMD ["./start.sh"]
