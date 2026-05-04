@@ -33,7 +33,7 @@ function NavIcon({ icon }: { icon: string }) {
   return null;
 }
 
-export default function AppSidebar() {
+export default function AppSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -64,6 +64,7 @@ export default function AppSidebar() {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={onClose}
                 className={clsx(
                   "flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all duration-200",
                   active

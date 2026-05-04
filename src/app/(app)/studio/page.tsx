@@ -16,11 +16,6 @@ const NICHE_COLORS: Record<MusicNiche, string> = {
   nature: "#22C55E",
 };
 
-function formatDuration(seconds: number): string {
-  if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h`;
-  return `${Math.floor(seconds / 60)}m`;
-}
-
 function StatusBadge({ status }: { status: GenerationJob["status"] }) {
   const styles: Record<GenerationJob["status"], string> = {
     queued: "text-molecule-muted bg-molecule-gray/30 border-molecule-gray/30",

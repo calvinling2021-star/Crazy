@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { fadeUp, slideLeft, slideRight, staggerContainer } from "@/lib/animations";
+import { slideLeft, slideRight, staggerContainer } from "@/lib/animations";
 import Container from "@/components/layout/Container";
 import SectionLabel from "@/components/ui/SectionLabel";
 import Link from "next/link";

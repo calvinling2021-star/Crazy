@@ -1,8 +1,6 @@
 import { platformStats } from "@/data/analytics";
 
 export default function PlatformBreakdown() {
-  const total = platformStats.reduce((s, p) => s + p.streams, 0);
-
   return (
     <div className="bg-molecule-dark border border-molecule-gray/20 p-6">
       <h3 className="text-sm font-semibold text-molecule-white mb-5">Platform Breakdown</h3>
