@@ -25,7 +25,7 @@ from urllib.parse import quote_plus
 
 import requests
 
-from . import USER_AGENT, db
+from . import USER_AGENT, db, verify as verifier
 
 log = logging.getLogger(__name__)
 
@@ -119,6 +119,18 @@ def neverbounce_verify(email: str) -> str:
         return "unknown"
 
 
+def verify_email(email: str) -> tuple[str, float]:
+    """Verify via NeverBounce when key is set, else built-in SMTP probe.
+
+    Returns (verdict, score). Score is the credit assigned to the contact.
+    """
+    if os.getenv("NEVERBOUNCE_API_KEY"):
+        verdict = neverbounce_verify(email)
+        return verdict, {"valid": 90, "invalid": 0, "unknown": 30}.get(verdict, 30)
+    r = verifier.verify(email, do_smtp=os.getenv("SMTP_VERIFY", "1") == "1")
+    return r.verdict, r.score
+
+
 # ---------------------------------------------------------------------------
 # Main enrichment loop
 # ---------------------------------------------------------------------------
@@ -148,16 +160,15 @@ def enrich_one(cik: str, name: str, ceo_id: int, domain: str | None,
             """, (ceo_id, h_email, h_score))
             inserted += 1
 
-        # Pattern guesses (always)
+        # Pattern guesses + verify
         for cand in email_candidates(name, domain):
-            verdict = neverbounce_verify(cand)
-            score = {"valid": 90, "invalid": 0, "unknown": 30}[verdict]
-            if score == 0:
+            verdict, score = verify_email(cand)
+            if score <= 0:
                 continue
             cur.execute("""
                 INSERT INTO contacts (ceo_id, channel, value, source, score)
-                VALUES (?, 'email', ?, 'pattern', ?)
-            """, (ceo_id, cand, score))
+                VALUES (?, 'email', ?, ?, ?)
+            """, (ceo_id, cand, f"pattern:{verdict}", score))
             inserted += 1
     return inserted
 
@@ -165,13 +176,20 @@ def enrich_one(cik: str, name: str, ceo_id: int, domain: str | None,
 def run(limit: int | None = None, default_domain_map: dict[str, str] | None = None) -> None:
     """Iterate CEOs and enrich them.
 
-    `default_domain_map` lets the caller pass {ticker: domain} for known mappings.
+    Uses each company's discovered `domain` from the DB (populated by
+    `pipeline.domains`). `default_domain_map` overrides on a per-ticker basis
+    when you have higher-quality mappings.
     """
     default_domain_map = default_domain_map or {}
     with db.cursor() as cur:
-        cur.execute("""
+        # Tolerate the schema migration in `domains.py` (column may be absent)
+        cur.execute("PRAGMA table_info(companies)")
+        cols = {r["name"] for r in cur.fetchall()}
+        domain_col = "companies.domain" if "domain" in cols else "NULL"
+        cur.execute(f"""
             SELECT ceos.id AS ceo_id, ceos.cik, ceos.name AS ceo_name,
-                   companies.ticker, companies.name AS company_name
+                   companies.ticker, companies.name AS company_name,
+                   {domain_col} AS domain
             FROM ceos
             JOIN companies ON companies.cik = ceos.cik
             WHERE ceos.is_current = 1
@@ -184,7 +202,7 @@ def run(limit: int | None = None, default_domain_map: dict[str, str] | None = No
     log.info("Enriching contacts for %d CEOs…", len(rows))
     total = 0
     for n, row in enumerate(rows, 1):
-        domain = default_domain_map.get(row["ticker"])
+        domain = default_domain_map.get(row["ticker"]) or row["domain"]
         added = enrich_one(row["cik"], row["ceo_name"], row["ceo_id"],
                            domain, row["company_name"])
         total += added

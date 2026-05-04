@@ -6,7 +6,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from . import db, enrich, officers
+from . import db, domains, enrich, feeds, officers, verify
 
 
 def test_db_schema():
@@ -73,6 +73,77 @@ def test_ceo_extractor():
     print(f"  ceo extractor OK ({name}, conf={conf})")
 
 
+def test_domain_blocklist():
+    # IR/wire domains should never come back as company domains
+    assert domains._domain_from_url("https://www.globenewswire.com/news/foo") is None
+    assert domains._domain_from_url("https://investors.foo.com") == "investors.foo.com"
+    # Multi-label blocklist match
+    assert domains._scan_text_for_domain(
+        "Visit us at https://investors.werewolftx.com for more"
+    ) == "werewolftx.com"
+    # Press-wire URLs should be skipped in favor of the company URL
+    text = ("source: https://www.globenewswire.com/news/foo "
+            "Visit our site at https://www.bioatla.com/")
+    assert domains._scan_text_for_domain(text) == "bioatla.com"
+    print("  domain blocklist OK")
+
+
+def test_domain_heuristic():
+    d, _ = domains.heuristic_from_name("Werewolf Therapeutics, Inc.")
+    assert d == "werewolf.com", d
+    d, _ = domains.heuristic_from_name("BioAtla, Inc.")
+    assert d == "bioatla.com", d
+    d, _ = domains.heuristic_from_name("X")
+    assert d is None
+    print("  domain heuristic OK")
+
+
+def test_verify_syntax():
+    assert verify.syntax_ok("a.b@c.io")
+    assert not verify.syntax_ok("not an email")
+    assert not verify.syntax_ok("")
+    r = verify.verify("definitely not valid", do_smtp=False)
+    assert r.verdict == "bad_syntax", r
+    print("  verify syntax OK")
+
+
+def test_feed_parsers():
+    atom = """<?xml version="1.0" encoding="UTF-8"?>
+    <feed xmlns="http://www.w3.org/2005/Atom">
+      <entry>
+        <id>tag:edgar,2026:e1</id>
+        <title>BIOATLA INC (Ticker: BCAB) — 8-K filing</title>
+        <link href="https://www.sec.gov/Archives/edgar/data/1815776/foo.htm"/>
+        <updated>2026-04-15T12:00:00Z</updated>
+        <summary>Item 3.01 deficiency notice received</summary>
+      </entry>
+    </feed>"""
+    items = feeds.parse_atom(atom, "edgar_8k")
+    assert len(items) == 1
+    assert items[0].guid.endswith("e1")
+    assert "BIOATLA" in items[0].title
+
+    rss = """<?xml version="1.0"?>
+    <rss><channel>
+      <item>
+        <title>SUNation Energy Announces Strategic Alternatives Review (SUNE)</title>
+        <link>https://www.globenewswire.com/news/123</link>
+        <guid>g1</guid>
+        <description>The Board authorized a review of strategic alternatives.</description>
+        <pubDate>Thu, 09 Apr 2026 10:00:00 +0000</pubDate>
+      </item>
+    </channel></rss>"""
+    rss_items = feeds.parse_rss(rss, "globenewswire")
+    assert len(rss_items) == 1
+    assert "SUNation" in rss_items[0].title
+
+    # Keyword regex hits
+    matches = [(label, w) for rx, label, w in feeds.KEYWORD_SIGNALS
+               if rx.search(rss_items[0].summary)]
+    assert any(m[0] == "strategic_alternatives" for m in matches)
+    print(f"  feed parsers OK ({len(items)} atom, {len(rss_items)} rss)")
+
+
 def main():
     print("Running offline smoke tests...")
     test_db_schema()
@@ -80,6 +151,10 @@ def main():
     test_email_candidates()
     test_linkedin_search()
     test_ceo_extractor()
+    test_domain_blocklist()
+    test_domain_heuristic()
+    test_verify_syntax()
+    test_feed_parsers()
     print("\nAll smoke tests passed.")
 
 

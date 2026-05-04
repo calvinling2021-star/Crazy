@@ -24,7 +24,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from . import db, universe, delinquency, officers, enrich
+from . import db, universe, delinquency, officers, enrich, domains, feeds
 
 
 def cmd_universe(args):
@@ -43,11 +43,24 @@ def cmd_enrich(args):
     enrich.run(limit=args.limit)
 
 
+def cmd_domains(args):
+    domains.discover_for_universe(limit=args.limit)
+
+
+def cmd_feeds(args):
+    if args.subcmd == "watch":
+        feeds.watch(interval=args.interval)
+    else:
+        feeds.poll_once()
+
+
 def cmd_daily(args):
     universe.build_universe(max_cap=args.max_cap, limit=args.limit, workers=args.workers)
+    domains.discover_for_universe(limit=args.limit)
     delinquency.score_universe(limit=args.limit)
     officers.run(limit=args.limit)
     enrich.run(limit=args.limit)
+    feeds.poll_once()
     cmd_export(argparse.Namespace(out=str(Path("pipeline/data") / "hot_prospects.xlsx"),
                                    min_score=0, hot_only=False))
 
@@ -137,9 +150,11 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sp = sub.add_parser("universe");  sp.add_argument("--max-cap", type=float, default=25_000_000); sp.add_argument("--limit", type=int); sp.add_argument("--workers", type=int, default=8); sp.set_defaults(func=cmd_universe)
+    sp = sub.add_parser("domains");   sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_domains)
     sp = sub.add_parser("signals");   sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_signals)
     sp = sub.add_parser("officers");  sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_officers)
     sp = sub.add_parser("enrich");    sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_enrich)
+    sp = sub.add_parser("feeds");     sp.add_argument("subcmd", choices=["once", "watch"]); sp.add_argument("-i", "--interval", type=float, default=600.0); sp.set_defaults(func=cmd_feeds)
     sp = sub.add_parser("daily");     sp.add_argument("--max-cap", type=float, default=25_000_000); sp.add_argument("--limit", type=int); sp.add_argument("--workers", type=int, default=8); sp.set_defaults(func=cmd_daily)
     sp = sub.add_parser("export")
     sp.add_argument("--out", default="pipeline/data/hot_prospects.xlsx")

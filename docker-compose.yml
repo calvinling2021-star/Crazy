@@ -1,0 +1,20 @@
+services:
+  pipeline-daily:
+    build: .
+    container_name: ceo-pipeline-daily
+    restart: unless-stopped
+    volumes:
+      - ./pipeline/data:/app/pipeline/data
+    env_file:
+      - .env
+    command: ["daily", "--max-cap", "25000000"]
+
+  pipeline-feeds:
+    build: .
+    container_name: ceo-pipeline-feeds
+    restart: unless-stopped
+    volumes:
+      - ./pipeline/data:/app/pipeline/data
+    env_file:
+      - .env
+    command: ["feeds", "watch", "-i", "600"]
