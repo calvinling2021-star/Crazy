@@ -6,7 +6,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from . import db, domains, enrich, feeds, officers, verify
+from . import db, domains, enrich, feeds, linkedin_score, officers, verify
 
 
 def test_db_schema():
@@ -107,6 +107,21 @@ def test_verify_syntax():
     print("  verify syntax OK")
 
 
+def test_linkedin_score():
+    # Exact first+last name match → high confidence
+    s = linkedin_score.score_match("John Smith", "https://linkedin.com/in/john-smith")
+    assert s >= 70, f"expected >= 70, got {s}"
+    # Google search URL → low score
+    s = linkedin_score.score_match("John Smith", "https://www.google.com/search?q=john+smith+linkedin")
+    assert s <= 20, f"expected <= 20, got {s}"
+    # Slug has no name tokens → very low
+    s = linkedin_score.score_match("John Smith", "https://linkedin.com/in/xyz-abc-999")
+    assert s <= 15, f"expected <= 15, got {s}"
+    # Empty URL → 0
+    assert linkedin_score.score_match("John Smith", "") == 0
+    print("  linkedin score OK")
+
+
 def test_feed_parsers():
     atom = """<?xml version="1.0" encoding="UTF-8"?>
     <feed xmlns="http://www.w3.org/2005/Atom">
@@ -154,6 +169,7 @@ def main():
     test_domain_blocklist()
     test_domain_heuristic()
     test_verify_syntax()
+    test_linkedin_score()
     test_feed_parsers()
     print("\nAll smoke tests passed.")
 

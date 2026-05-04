@@ -24,7 +24,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from . import db, universe, delinquency, officers, enrich, domains, feeds
+from . import db, universe, delinquency, officers, enrich, domains, feeds, linkedin_score
 
 
 def cmd_universe(args):
@@ -41,6 +41,13 @@ def cmd_officers(args):
 
 def cmd_enrich(args):
     enrich.run(limit=args.limit)
+    n = linkedin_score.update_scores()
+    logging.getLogger(__name__).info("LinkedIn scores updated for %d contacts.", n)
+
+
+def cmd_linkedin_score(_args):
+    n = linkedin_score.update_scores()
+    print(f"LinkedIn scores updated for {n} contacts.")
 
 
 def cmd_domains(args):
@@ -153,7 +160,8 @@ def main():
     sp = sub.add_parser("domains");   sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_domains)
     sp = sub.add_parser("signals");   sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_signals)
     sp = sub.add_parser("officers");  sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_officers)
-    sp = sub.add_parser("enrich");    sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_enrich)
+    sp = sub.add_parser("enrich");       sp.add_argument("--limit", type=int); sp.set_defaults(func=cmd_enrich)
+    sp = sub.add_parser("linkedin-score");  sp.set_defaults(func=cmd_linkedin_score)
     sp = sub.add_parser("feeds");     sp.add_argument("subcmd", choices=["once", "watch"]); sp.add_argument("-i", "--interval", type=float, default=600.0); sp.set_defaults(func=cmd_feeds)
     sp = sub.add_parser("daily");     sp.add_argument("--max-cap", type=float, default=25_000_000); sp.add_argument("--limit", type=int); sp.add_argument("--workers", type=int, default=8); sp.set_defaults(func=cmd_daily)
     sp = sub.add_parser("export")

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS ceos (
     source_filing   TEXT,
     confidence      REAL,
     is_current      INTEGER DEFAULT 1,
+    notes           TEXT,
     captured_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(cik) REFERENCES companies(cik)
 );
@@ -74,12 +75,23 @@ ORDER BY delinquency_score DESC;
 """
 
 
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Idempotent migrations for columns added after initial schema creation."""
+    for stmt in ("ALTER TABLE ceos ADD COLUMN notes TEXT",):
+        try:
+            conn.execute(stmt)
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+
 def connect(db_path: Path | str = DB_PATH) -> sqlite3.Connection:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
 
 
@@ -115,3 +127,24 @@ def add_signal(cur, cik: str, signal_type: str, score_delta: float,
         INSERT INTO signals (cik, signal_type, score_delta, evidence_url, filing_date)
         VALUES (?, ?, ?, ?, ?)
     """, (cik, signal_type, score_delta, evidence_url, filing_date))
+
+
+def set_ceo_notes(cur, ceo_id: int, notes: str) -> None:
+    cur.execute("UPDATE ceos SET notes=? WHERE id=?", (notes, ceo_id))
+
+
+def upsert_manual_contact(cur, ceo_id: int, channel: str, value: str) -> int:
+    """Insert or promote-to-manual an existing contact. Returns the contact id."""
+    cur.execute(
+        "SELECT id FROM contacts WHERE ceo_id=? AND channel=? AND value=?",
+        (ceo_id, channel, value),
+    )
+    row = cur.fetchone()
+    if row:
+        cur.execute("UPDATE contacts SET source='manual', score=100 WHERE id=?", (row["id"],))
+        return row["id"]
+    cur.execute(
+        "INSERT INTO contacts (ceo_id, channel, value, source, score) VALUES (?, ?, ?, 'manual', 100)",
+        (ceo_id, channel, value),
+    )
+    return cur.lastrowid
