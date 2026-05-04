@@ -1,8 +1,8 @@
 export const NAV_LINKS = [
-  { label: "Features", href: "/#how-it-works" },
-  { label: "Niches", href: "/#niches" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Calculator", href: "/#calculator" },
   { label: "Pricing", href: "/#pricing" },
-  { label: "Dashboard", href: "/dashboard" },
+  { label: "Creator Stories", href: "/team" },
 ] as const;
 
 export const APP_NAV_LINKS = [

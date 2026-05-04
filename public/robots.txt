@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.moleculecapital.net/sitemap.xml
+Disallow: /api/
+
+Sitemap: https://soundmint.io/sitemap.xml

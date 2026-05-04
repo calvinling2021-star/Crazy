@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Our Team",
+  title: "Creator Stories",
   description:
-    "Meet the Molecule Capital team — operators, scientists, and investors united by a passion for healthcare.",
+    "Real creators, real royalties. How everyday people are building $5K–$30K/month passive income with SoundMint.",
 };
 
 export default function TeamLayout({ children }: { children: React.ReactNode }) {
