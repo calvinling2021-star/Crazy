@@ -1,44 +1,36 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.moleculecapital.net"),
+  metadataBase: new URL("https://soundmint.io"),
   title: {
-    default: "Molecule Capital | Healthcare & Biotech Investment",
-    template: "%s | Molecule Capital",
+    default: "SoundMint | AI Music Monetization Platform",
+    template: "%s | SoundMint",
   },
   description:
-    "Molecule Capital is a family office investing in transformative healthcare and biotech companies across private and public markets.",
+    "Turn AI-generated music into passive income. Create sleep, meditation, and focus tracks with Suno AI, distribute to 150+ platforms, and earn royalties while you sleep.",
   keywords: [
-    "healthcare investing",
-    "biotech venture capital",
-    "family office",
-    "life science investments",
-    "molecule capital",
+    "ai music monetization",
+    "suno ai",
+    "passive income music",
+    "spotify royalties",
+    "sleep music",
+    "meditation music",
+    "lofi beats",
+    "music distribution",
+    "distrokid",
   ],
-  authors: [{ name: "Molecule Capital" }],
+  authors: [{ name: "SoundMint" }],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://www.moleculecapital.net",
-    siteName: "Molecule Capital",
-    title: "Molecule Capital | Healthcare & Biotech Investment",
+    url: "https://soundmint.io",
+    siteName: "SoundMint",
+    title: "SoundMint | AI Music Monetization Platform",
     description:
-      "A family office dedicated to healthcare & biotech innovation across private and public markets.",
+      "Generate AI music, distribute to 150+ platforms, earn royalties on autopilot.",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Molecule Capital | Healthcare & Biotech Investment",
-    description:
-      "A family office dedicated to healthcare & biotech innovation.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true },
-  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
@@ -55,25 +47,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
           rel="stylesheet"
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "Molecule Capital",
-              url: "https://www.moleculecapital.net",
-              description:
-                "A family office investing in healthcare and biotech.",
-              industry: "Investment Management",
-            }),
-          }}
-        />
       </head>
-      <body className="min-h-full flex flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+      <body className="min-h-full bg-molecule-black text-molecule-white">
+        {children}
       </body>
     </html>
   );

@@ -13,6 +13,14 @@
   --color-molecule-gold-dark: #B8943F;
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Niche accent colors */
+  --color-niche-sleep: #3B82F6;
+  --color-niche-meditation: #8B5CF6;
+  --color-niche-focus: #F59E0B;
+  --color-niche-lofi: #14B8A6;
+  --color-niche-ambient: #10B981;
+  --color-niche-nature: #22C55E;
 }
 
 html {
