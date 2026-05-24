@@ -1,0 +1,15 @@
+{
+  "name": "remote-control-agent",
+  "version": "1.0.0",
+  "description": "Dependency-free desktop agent that lets an iOS app remote-control this machine over WebSocket.",
+  "bin": {
+    "rc-agent": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

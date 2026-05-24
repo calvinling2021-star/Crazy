@@ -1,0 +1,29 @@
+# XcodeGen spec. Install: brew install xcodegen
+# Generate the project: cd remote-control/ios && xcodegen generate
+# Then open RemoteControl.xcodeproj in Xcode and run on a device or simulator.
+name: RemoteControl
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  RemoteControl:
+    type: application
+    platform: iOS
+    sources:
+      - RemoteControl
+    info:
+      path: RemoteControl/Info.plist
+      properties:
+        CFBundleDisplayName: Remote Control
+        UILaunchScreen: {}
+        # iOS blocks insecure ws:// by default. Allow it on the local network
+        # so the app can reach the desktop agent over LAN.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # Required for local-network discovery/connection prompts on iOS 14+.
+        NSLocalNetworkUsageDescription: "Connect to the desktop agent on your local network."
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: false
