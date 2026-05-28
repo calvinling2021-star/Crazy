@@ -95,30 +95,36 @@ def _generate_population(
         }
 
     # Wallet skill: configurable distribution.
-    def _draw_skill() -> float:
+    # heavy_tail params were calibrated against polymimic's real top-200
+    # Polymarket whale data (polymarket/data/top_200_real_wallets.csv): the
+    # real distribution has top-10% capturing ~40% of total PnL — these
+    # params reproduce that concentration.
+    def _draw_skill() -> tuple[float, float]:
+        """Return (skill_advantage, activity_multiplier)."""
         if skill_distribution == "normal":
-            return rng.gauss(0.0, 0.08)
-        # heavy_tail: three-component mixture
+            return rng.gauss(0.0, 0.08), 1.0
+        # heavy_tail: three-component mixture, calibrated against real data
         r = rng.random()
-        if r < 0.88:
-            return rng.gauss(0.0, 0.04)  # noise majority
+        if r < 0.92:
+            return rng.gauss(0.0, 0.04), 1.0      # noise majority
         elif r < 0.98:
-            return rng.gauss(0.04, 0.08)  # skilled minority
+            return rng.gauss(0.06, 0.10), 2.5     # skilled minority — more active
         else:
-            return rng.gauss(0.15, 0.10)  # rare whales
+            return rng.gauss(0.22, 0.15), 5.0     # rare whales — much more active
 
     def _draw_size() -> int:
         if size_distribution == "uniform":
             return rng.choice([100, 250, 500, 1000, 2500])
-        # log_normal: median ~$300, fat tail to ~$200k
-        return max(10, int(rng.lognormvariate(5.7, 1.6)))
+        # log_normal: median ~$300, fat tail to ~$200k. Matches the real
+        # trade-size dispersion observed on Polymarket.
+        return max(10, int(rng.lognormvariate(5.7, 1.8)))
 
     wallets: list[WalletRank] = []
     trades: dict[str, list[dict[str, Any]]] = {}
     for i in range(n_wallets):
         wallet = f"0x{i:040x}"
-        skill = _draw_skill()
-        activity = rng.randint(40, 250)
+        skill, activity_mult = _draw_skill()
+        activity = int(rng.randint(40, 250) * activity_mult)
         pnl_proxy = 0.0
         vol_proxy = 0.0
         rows: list[dict[str, Any]] = []
