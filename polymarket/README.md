@@ -64,10 +64,42 @@ If `polymarket.fetch` fails with 403 errors, you have four options:
 
 | option | cost | latency | US-legal? | notes |
 |---|---|---|---|---|
-| **Dune Analytics** | $0 (free tier 2.5k queries/mo) | ~1 min/query | ✅ yes | Cleanest. Same on-chain data, SQL access, no VPN. |
+| **Jon-Becker S3 dump** | $0, no signup | ~5–10 min download | ✅ yes | Bulk parquet, includes wallet addresses. Easiest. |
+| Dune Analytics | $0 (free tier 2.5k queries/mo) | ~1 min/query | ✅ yes | SQL access, requires Dune account. |
 | Polygonscan API | $0 (rate-limited) | minutes | ✅ yes | Per-wallet tx history. Slower than Dune. |
 | Polygon RPC direct | $0 | hours (parse logs) | ✅ yes | Most authoritative. Slowest. |
 | VPS in EU/SG | ~$5/mo | one-time setup | gray area | `./run_local.sh` works as-is. |
+
+**Jon-Becker's dump is the recommended path for US users** — single curl, no
+account, includes both Polymarket *and* Kalshi trade-level data with wallet
+addresses. Author publishes it as research infrastructure for
+[prediction-market-analysis](https://github.com/Jon-Becker/prediction-market-analysis).
+
+#### Jon-Becker setup
+
+```bash
+# 1) Download + extract the dump (a few GB)
+curl -L -o data.tar.zst https://s3.jbecker.dev/data.tar.zst
+zstd -d data.tar.zst -c | tar -xf -                # extracts to ./data/
+
+# 2) (optional) inspect what columns the current dump has, in case the
+#    schema has drifted since this adapter was written
+python3 -m polymarket.sources.jbecker --data-dir data --inspect
+
+# 3) Convert to our cache format
+python3 -m polymarket.sources.jbecker \
+  --data-dir data --top 200 --window-months 12 --out cache.json
+
+# 4) Run the backtest — same as the live-API path
+python3 -m polymarket.backtest --cache cache.json \
+  --candidate-pool 50 --top-k 50 \
+  --min-consensus-leaders 2 --consensus-window-hours 24 \
+  --fraction 0.02
+```
+
+If `--inspect` shows a column name we don't recognise (jbecker occasionally
+renames things), use `--col-maker <name>`, `--col-taker <name>`,
+`--col-timestamp <name>`, etc. to override.
 
 **Dune is the recommended alternative.** It's:
 - US-legal (Dune is a US company indexing public on-chain data)
@@ -286,13 +318,14 @@ that scales return and drawdown roughly proportionally.
 pytest polymarket/tests -v
 ```
 
-Twenty-one tests, all offline:
+Twenty-four tests, all offline:
   * 13 simulator tests (sizing, caps, settlement, limit-order execution, consensus
     filter, price gate, stop-loss, profit-take, bad-row filtering, …)
   * 4 backtest methodology tests (pipeline, selection step, window isolation,
     pool source)
   * 2 cache tests (live-vs-replay parity, version validation)
   * 2 Dune adapter tests (payload shape, optional markets query)
+  * 3 jbecker adapter tests (parquet conversion, schema validation, min-trades filter)
 
 ## Architecture
 
