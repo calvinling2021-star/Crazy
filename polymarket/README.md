@@ -66,13 +66,59 @@ Artifacts written to `--out`:
 | `--slippage-bps` | 50 | adverse price move modelled on entry/exit |
 | `--fee-bps` | 20 | round-trip transaction cost |
 
+## 12-month walk-forward backtest
+
+**Don't trust naive backtests.** Picking "top 100 by lifetime PnL" and copying
+their trades over the same period is look-ahead biased — those wallets sit on
+the leaderboard *because of* the trades the simulator then copies. The
+backtest avoids this:
+
+  * **Selection window** (default: months 1–6): rank a candidate pool of
+    wallets by their PnL *inside this window only*.
+  * **Validation window** (default: months 7–12): copy the top-K wallets'
+    trades from this window only, with real market resolutions.
+
+```bash
+python -m polymarket.backtest \
+  --candidate-pool 200 --top-k 100 \
+  --selection-months 6 --validation-months 6 \
+  --capital 10000 --sizing fraction_lead --fraction 0.01 \
+  --fee-bps 20 --slippage-bps 50
+```
+
+Or run the whole pipeline on synthetic data (no network) to see the output
+format:
+
+```bash
+python -m polymarket.backtest --synthetic --seed 42
+```
+
+### Findings on synthetic data (sanity check)
+
+Across 10 seeds of a population of 200 wallets whose skill is drawn from
+N(0, 0.08):
+
+| metric | mean | stdev | min | max |
+|---|---|---|---|---|
+| return % | **−2.0** | 9.0 | −21.1 | +8.4 |
+| Sharpe (annualised) | −0.4 | 2.1 | −4.9 | +1.9 |
+| max drawdown % | −9.7 | 6.2 | −22.8 | −4.5 |
+| win rate % | 57.5 | 2.5 | 54.1 | 61.5 |
+
+Single-seed runs are wildly misleading; one seed printed +14%, another −21%.
+The honest mean is roughly flat-to-negative because fees (20 bps) + slippage
+(50 bps) + selection-window noise eat the edge. **Run against real
+Polymarket data to get the actual answer for this strategy.**
+
 ## Tests
 
 ```bash
 pytest polymarket/tests -v
 ```
 
-Tests are fully offline and use synthetic trade rows.
+Ten tests, all offline:
+  * 7 simulator tests (sizing, caps, settlement, bad-row filtering, …)
+  * 3 backtest methodology tests (pipeline, selection step, window isolation)
 
 ## Architecture
 

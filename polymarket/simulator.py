@@ -148,6 +148,8 @@ class CopyTradingSimulator:
         wallet_trades: dict[str, list[dict[str, Any]]],
         leader_pnls: dict[str, float] | None = None,
         resolutions: dict[str, dict[str, float]] | None = None,
+        start_ts: datetime | None = None,
+        end_ts: datetime | None = None,
     ) -> dict[str, Any]:
         """Run the simulation.
 
@@ -156,11 +158,17 @@ class CopyTradingSimulator:
         wallet_trades : { leader_wallet: [raw activity rows from data-api] }
         leader_pnls   : optional { leader_wallet: lifetime PnL } for kelly_pnl sizing.
         resolutions   : optional { market_id: { 'YES': 0|1, 'NO': 0|1 } }
+        start_ts/end_ts : restrict to events in this window (UTC). Used by the
+                          walk-forward backtest to isolate the validation window.
         """
         leader_pnls = leader_pnls or {}
         self._market_resolution = resolutions or {}
 
         events = self._merge_and_filter(wallet_trades, leader_pnls)
+        if start_ts is not None:
+            events = [e for e in events if e["ts"] >= start_ts]
+        if end_ts is not None:
+            events = [e for e in events if e["ts"] <= end_ts]
         log.info("simulating %d leader fills", len(events))
 
         for ev in events:
@@ -312,11 +320,40 @@ class CopyTradingSimulator:
                 }
 
         eq = pd.DataFrame(self.equity_curve, columns=["ts", "equity"])
+        max_dd = 0.0
+        sharpe = 0.0
+        monthly = pd.DataFrame()
         if not eq.empty:
             eq["drawdown"] = eq["equity"] / eq["equity"].cummax() - 1
             max_dd = float(eq["drawdown"].min())
-        else:
-            max_dd = 0.0
+            daily = (
+                eq.assign(date=pd.to_datetime(eq["ts"]).dt.tz_convert("UTC").dt.date)
+                .groupby("date")["equity"].last()
+            )
+            rets = daily.pct_change().dropna()
+            if len(rets) > 1 and rets.std() > 0:
+                sharpe = float(rets.mean() / rets.std() * (252**0.5))
+            ts_utc = pd.to_datetime(eq["ts"]).dt.tz_convert("UTC").dt.tz_localize(None)
+            monthly = (
+                ts_utc.dt.to_period("M").to_frame("month")
+                .assign(equity=eq["equity"].values)
+                .groupby("month")["equity"].last()
+                .to_frame()
+            )
+            monthly["pnl_usd"] = monthly["equity"].diff()
+            first_eq = float(eq["equity"].iloc[0])
+            monthly.loc[monthly.index[0], "pnl_usd"] = monthly["equity"].iloc[0] - first_eq
+
+        # Win rate: per (market, outcome), did proceeds exceed buys?
+        win_rate = 0.0
+        if not df.empty:
+            by_mkt = (
+                df.assign(signed=lambda x: x.apply(lambda r: r["notional_usd"] if r["side"] == "SELL" else -r["notional_usd"], axis=1))
+                .groupby(["market_id", "outcome"])["signed"].sum()
+            )
+            closed = by_mkt[by_mkt.abs() > 1e-6]
+            if len(closed):
+                win_rate = float((closed > 0).sum()) / float(len(closed)) * 100
 
         starting = self.cfg.starting_capital_usd
         return {
@@ -325,8 +362,11 @@ class CopyTradingSimulator:
             "pnl_usd": final_equity - starting,
             "return_pct": (final_equity / starting - 1) * 100 if starting else 0.0,
             "max_drawdown_pct": max_dd * 100,
+            "sharpe_annualised": sharpe,
+            "win_rate_pct": win_rate,
             "num_copy_trades": len(self.copy_trades),
             "per_leader": per_leader,
             "trades_df": df,
             "equity_df": eq,
+            "monthly_df": monthly,
         }
