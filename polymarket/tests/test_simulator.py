@@ -141,6 +141,47 @@ def test_fraction_lead_sizing():
     assert sim.copy_trades[0].notional_usd == pytest.approx(100.0, rel=1e-6)  # 2% of $5k
 
 
+def test_limit_mode_skips_when_unfilled():
+    t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    leader = "0xlimit"
+    trades = [_trade("BUY", 0.40, 1000, t0 + timedelta(minutes=i)) for i in range(50)]
+    cfg = SimConfig(
+        starting_capital_usd=100_000.0,
+        sizing_mode="fixed_usd",
+        fixed_usd=100.0,
+        execution_mode="limit",
+        limit_fill_probability=0.0,
+        min_leader_pnl_usd=0.0,
+        per_leader_daily_cap_usd=1_000_000.0,
+        max_position_usd=1_000_000.0,
+    )
+    sim = CopyTradingSimulator(cfg)
+    sim.run({leader: trades}, leader_pnls={leader: 50_000.0})
+    assert len(sim.copy_trades) == 0
+    assert sim.skipped_unfilled == 50
+
+
+def test_limit_mode_fills_at_leader_price_no_slippage():
+    t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    leader = "0xlimit"
+    trades = [_trade("BUY", 0.40, 1000, t0)]
+    cfg = SimConfig(
+        starting_capital_usd=10_000.0,
+        sizing_mode="fixed_usd",
+        fixed_usd=100.0,
+        execution_mode="limit",
+        limit_fill_probability=1.0,
+        slippage_bps=500.0,  # would be very high in market mode
+        fee_bps=0.0,
+        min_leader_pnl_usd=0.0,
+        per_leader_daily_cap_usd=10_000.0,
+    )
+    sim = CopyTradingSimulator(cfg)
+    sim.run({leader: trades}, leader_pnls={leader: 50_000.0})
+    assert len(sim.copy_trades) == 1
+    assert sim.copy_trades[0].fill_price == pytest.approx(0.40)  # no slippage in limit mode
+
+
 def test_normalises_invalid_rows():
     t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
     leader = "0xleader"

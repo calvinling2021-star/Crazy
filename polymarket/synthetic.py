@@ -28,6 +28,8 @@ class _FakeClient(PolymarketClient):
         self._markets = markets
 
     def leaderboard(self, window="all", metric="profit", limit=100):
+        key = (lambda w: -w.volume_usd) if metric == "volume" else (lambda w: -w.pnl_usd)
+        ordered = sorted(self._wallets, key=key)
         return [
             {
                 "proxyWallet": w.wallet,
@@ -36,7 +38,7 @@ class _FakeClient(PolymarketClient):
                 "volume": w.volume_usd,
                 "positions": w.positions,
             }
-            for w in self._wallets[:limit]
+            for w in ordered[:limit]
         ]
 
     def all_trades(self, wallet, page_size=500, hard_cap=5000):

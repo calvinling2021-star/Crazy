@@ -27,6 +27,7 @@ Risk controls
 from __future__ import annotations
 
 import logging
+import random
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -37,6 +38,7 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 SizingMode = Literal["fixed_usd", "fraction_lead", "kelly_pnl"]
+ExecutionMode = Literal["market", "limit"]
 
 
 @dataclass
@@ -46,13 +48,20 @@ class SimConfig:
     fixed_usd: float = 100.0
     fraction: float = 0.01  # 1% of leader's notional
     fee_bps: float = 20.0  # round-trip fee in basis points of notional
-    slippage_bps: float = 50.0  # extra adverse price move on entry
+    slippage_bps: float = 50.0  # market-mode: adverse price move on entry/exit
     latency_seconds: int = 60
     max_position_usd: float = 1_000.0
     max_concurrent: int = 50
     per_leader_daily_cap_usd: float = 2_000.0
     min_leader_pnl_usd: float = 5_000.0
     leader_weights: dict[str, float] = field(default_factory=dict)
+    # Execution model:
+    #   "market": fill always, at leader_price * (1 +/- slippage_bps).
+    #   "limit":  fill at leader_price (no slippage) with prob `limit_fill_probability`;
+    #             otherwise skip the trade. Models patient limit-order execution.
+    execution_mode: ExecutionMode = "market"
+    limit_fill_probability: float = 0.6
+    execution_seed: int = 0
 
 
 @dataclass
@@ -141,6 +150,8 @@ class CopyTradingSimulator:
         self._daily_deployed: dict[tuple[str, str], float] = defaultdict(float)
         self._market_last_price: dict[tuple[str, str], float] = {}
         self._market_resolution: dict[str, dict[str, float]] = {}
+        self._rng = random.Random(self.cfg.execution_seed)
+        self.skipped_unfilled = 0
 
     # ---------- public API ----------
     def run(
@@ -215,7 +226,13 @@ class CopyTradingSimulator:
             size_usd = min(size_usd, remaining_cap)
             if size_usd < 1.0:
                 return
-            fill_price = min(0.999, ev["price"] * (1 + self.cfg.slippage_bps / 10_000))
+            if self.cfg.execution_mode == "limit":
+                if self._rng.random() > self.cfg.limit_fill_probability:
+                    self.skipped_unfilled += 1
+                    return
+                fill_price = ev["price"]
+            else:
+                fill_price = min(0.999, ev["price"] * (1 + self.cfg.slippage_bps / 10_000))
             shares = size_usd / fill_price
             fee = size_usd * self.cfg.fee_bps / 10_000
             self.cash -= size_usd + fee
@@ -243,7 +260,13 @@ class CopyTradingSimulator:
                 return
             close_frac = min(1.0, ev["size"] / max(ev["size"], pos.shares))
             shares_to_sell = pos.shares * close_frac
-            fill_price = max(0.001, ev["price"] * (1 - self.cfg.slippage_bps / 10_000))
+            if self.cfg.execution_mode == "limit":
+                if self._rng.random() > self.cfg.limit_fill_probability:
+                    self.skipped_unfilled += 1
+                    return
+                fill_price = ev["price"]
+            else:
+                fill_price = max(0.001, ev["price"] * (1 - self.cfg.slippage_bps / 10_000))
             proceeds = shares_to_sell * fill_price
             fee = proceeds * self.cfg.fee_bps / 10_000
             cost_released = pos.cost_basis_usd * close_frac

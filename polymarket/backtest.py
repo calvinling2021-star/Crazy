@@ -26,10 +26,11 @@ import argparse
 import json
 import logging
 import sys
+import random as _random
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 from tabulate import tabulate
@@ -43,13 +44,25 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class BacktestConfig:
-    candidate_pool: int = 200
-    top_k: int = 100
+    candidate_pool: int = 50
+    top_k: int = 15
     selection_months: int = 6
     validation_months: int = 6
     trades_per_wallet: int = 2000
     capital_usd: float = 10_000.0
     sim: SimConfig | None = None
+    # Which Polymarket leaderboard ranking seeds the candidate pool.
+    # 'pnl'    : current behaviour — top wallets by lifetime PnL. Practical for
+    #            a live trader, but look-ahead biased in a backtest because
+    #            "lifetime" includes the validation window.
+    # 'volume' : top by lifetime traded volume. Volume is much less correlated
+    #            with the validation-period outcome, so the bias is far weaker
+    #            (volume accumulates regardless of whether trades won).
+    # 'random' : shuffle the leaderboard output. Honest baseline for synthetic
+    #            tests; for live data, not useful unless you have an alternate
+    #            wallet enumeration.
+    pool_rank_by: Literal["pnl", "volume", "random"] = "pnl"
+    pool_random_seed: int = 0
 
 
 def _estimate_wallet_pnl(
@@ -140,8 +153,35 @@ def run_walk_forward(
         sel_start.date(), val_start.date(), val_start.date(), val_end.date(),
     )
 
-    log.info("seeding candidate pool: top %d by lifetime PnL", cfg.candidate_pool)
-    candidates = fetch_top_profitable_wallets(client, n=cfg.candidate_pool, window="all")
+    log.info("seeding candidate pool: %d wallets, ranked by %s", cfg.candidate_pool, cfg.pool_rank_by)
+    if cfg.pool_rank_by == "pnl":
+        candidates = fetch_top_profitable_wallets(client, n=cfg.candidate_pool, window="all")
+    elif cfg.pool_rank_by == "volume":
+        # Pull a wider top-by-volume set, then slice. Volume-ranked pools have
+        # weaker look-ahead bias because volume accrues regardless of P/L.
+        from .leaderboard import _coerce_float
+        raw = client.leaderboard(window="all", metric="volume", limit=cfg.candidate_pool)
+        from .leaderboard import WalletRank
+        candidates = [
+            WalletRank(
+                rank=i + 1,
+                wallet=(row.get("proxyWallet") or row.get("address") or row.get("user") or "").lower(),
+                name=row.get("name") or row.get("pseudonym"),
+                pnl_usd=_coerce_float(row.get("pnl") or row.get("profit")),
+                volume_usd=_coerce_float(row.get("volume")),
+                positions=int(_coerce_float(row.get("positions"))),
+                window="all",
+            )
+            for i, row in enumerate(raw)
+            if row.get("proxyWallet") or row.get("address") or row.get("user")
+        ][: cfg.candidate_pool]
+    elif cfg.pool_rank_by == "random":
+        candidates = fetch_top_profitable_wallets(client, n=cfg.candidate_pool * 2, window="all")
+        rng = _random.Random(cfg.pool_random_seed)
+        rng.shuffle(candidates)
+        candidates = candidates[: cfg.candidate_pool]
+    else:
+        raise ValueError(f"unknown pool_rank_by: {cfg.pool_rank_by}")
 
     trades_by_wallet: dict[str, list[dict[str, Any]]] = {}
     for i, c in enumerate(candidates, start=1):
@@ -204,8 +244,13 @@ def run_walk_forward(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Walk-forward 12-month backtest")
-    p.add_argument("--candidate-pool", type=int, default=200)
-    p.add_argument("--top-k", type=int, default=100)
+    p.add_argument("--candidate-pool", type=int, default=50,
+                   help="size of the leaderboard slice to consider (default 50)")
+    p.add_argument("--top-k", type=int, default=15,
+                   help="wallets to copy after re-ranking the pool by selection-window PnL (default 15)")
+    p.add_argument("--pool-rank-by", default="pnl", choices=["pnl", "volume", "random"],
+                   help="how to seed the candidate pool; 'volume' or 'random' weakens look-ahead bias")
+    p.add_argument("--pool-random-seed", type=int, default=0)
     p.add_argument("--selection-months", type=int, default=6)
     p.add_argument("--validation-months", type=int, default=6)
     p.add_argument("--trades-per-wallet", type=int, default=2000)
@@ -215,6 +260,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--fraction", type=float, default=0.01)
     p.add_argument("--fee-bps", type=float, default=20.0)
     p.add_argument("--slippage-bps", type=float, default=50.0)
+    p.add_argument("--execution-mode", default="market", choices=["market", "limit"],
+                   help="'limit' fills at leader_price with `--limit-fill-prob`, else skips (no slippage)")
+    p.add_argument("--limit-fill-prob", type=float, default=0.6)
+    p.add_argument("--execution-seed", type=int, default=0)
     p.add_argument("--max-position-usd", type=float, default=1_000.0)
     p.add_argument("--max-concurrent", type=int, default=50)
     p.add_argument("--per-leader-daily-cap", type=float, default=2_000.0)
@@ -296,12 +345,17 @@ def main(argv: list[str] | None = None) -> int:
         fraction=args.fraction,
         fee_bps=args.fee_bps,
         slippage_bps=args.slippage_bps,
+        execution_mode=args.execution_mode,
+        limit_fill_probability=args.limit_fill_prob,
+        execution_seed=args.execution_seed,
         max_position_usd=args.max_position_usd,
         max_concurrent=args.max_concurrent,
         per_leader_daily_cap_usd=args.per_leader_daily_cap,
         min_leader_pnl_usd=0.0,  # selection already filters by PnL
     )
     cfg = BacktestConfig(
+        pool_rank_by=args.pool_rank_by,
+        pool_random_seed=args.pool_random_seed,
         candidate_pool=args.candidate_pool,
         top_k=args.top_k,
         selection_months=args.selection_months,

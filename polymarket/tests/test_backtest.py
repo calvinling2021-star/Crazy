@@ -59,6 +59,28 @@ def test_selection_step_picks_above_average_wallets():
     assert top_mean > 0, f"top-K selection-window PnL mean should be > 0, got {top_mean:.0f}"
 
 
+def test_pool_rank_by_volume_changes_candidate_set():
+    """Volume-ranked pool must produce a different candidate set than PnL-ranked."""
+    wallets, trades, markets = _generate_population(n_wallets=120, n_markets=200, horizon_days=400, seed=5)
+    client = _FakeClient(wallets, trades, markets)
+
+    cfg_pnl = _baseline_cfg()
+    cfg_pnl.candidate_pool = 30
+    cfg_pnl.top_k = 30
+    cfg_pnl.pool_rank_by = "pnl"
+    s_pnl = run_walk_forward(client, cfg_pnl)
+
+    cfg_vol = _baseline_cfg()
+    cfg_vol.candidate_pool = 30
+    cfg_vol.top_k = 30
+    cfg_vol.pool_rank_by = "volume"
+    s_vol = run_walk_forward(client, cfg_vol)
+
+    pnl_set = set(s_pnl["selection_pnl"].keys())
+    vol_set = set(s_vol["selection_pnl"].keys())
+    assert pnl_set != vol_set
+
+
 def test_validation_window_isolation():
     """Trades outside the validation window must not be copied."""
     wallets, trades, markets = _generate_population(n_wallets=80, n_markets=200, horizon_days=400, seed=3)

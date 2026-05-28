@@ -79,12 +79,34 @@ backtest avoids this:
     trades from this window only, with real market resolutions.
 
 ```bash
+# Default config — pool=50 (top by lifetime PnL), narrow to top-15
 python -m polymarket.backtest \
-  --candidate-pool 200 --top-k 100 \
-  --selection-months 6 --validation-months 6 \
   --capital 10000 --sizing fraction_lead --fraction 0.01 \
   --fee-bps 20 --slippage-bps 50
+
+# Honest baseline — bypass the lifetime-PnL leaderboard bias
+python -m polymarket.backtest --pool-rank-by random
+
+# Patient limit-order execution (no slippage, 60% fill rate)
+python -m polymarket.backtest --execution-mode limit --limit-fill-prob 0.6
 ```
+
+### Pool source affects results
+
+The `--pool-rank-by` flag controls how the candidate pool is seeded:
+
+| flag | meaning | look-ahead bias |
+|---|---|---|
+| `pnl` (default) | top by lifetime PnL — Polymarket's leaderboard | strong (lifetime PnL includes the validation window) |
+| `volume` | top by lifetime traded volume | weak (volume accrues regardless of P/L) |
+| `random` | shuffled sample of the top-2N pool | weakest — measures whether the *selection step alone* has edge |
+
+### Execution mode
+
+| mode | behaviour | what it models |
+|---|---|---|
+| `market` (default) | always fills at `leader_price × (1 ± slippage_bps)` | market-taking — you cross the spread to mirror the leader fast |
+| `limit` | fills at exactly `leader_price` with `--limit-fill-prob`; else skips | patient limit-order — no slippage but you miss trades |
 
 Or run the whole pipeline on synthetic data (no network) to see the output
 format:
@@ -93,22 +115,45 @@ format:
 python -m polymarket.backtest --synthetic --seed 42
 ```
 
-### Findings on synthetic data (sanity check)
+### Findings on synthetic data (10 seeds, 6mo selection / 6mo validation, 70 bps friction)
 
-Across 10 seeds of a population of 200 wallets whose skill is drawn from
-N(0, 0.08):
+Population: 200 wallets, skill ~ N(0, 0.08).
 
-| metric | mean | stdev | min | max |
-|---|---|---|---|---|
-| return % | **−2.0** | 9.0 | −21.1 | +8.4 |
-| Sharpe (annualised) | −0.4 | 2.1 | −4.9 | +1.9 |
-| max drawdown % | −9.7 | 6.2 | −22.8 | −4.5 |
-| win rate % | 57.5 | 2.5 | 54.1 | 61.5 |
+**Pool=50, narrow to top-K (pnl-ranked pool — biased toward profitable wallets):**
 
-Single-seed runs are wildly misleading; one seed printed +14%, another −21%.
-The honest mean is roughly flat-to-negative because fees (20 bps) + slippage
-(50 bps) + selection-window noise eat the edge. **Run against real
-Polymarket data to get the actual answer for this strategy.**
+| top-K | 6mo ret% | annual% | Sharpe | worst DD% | +seeds |
+|---|---|---|---|---|---|
+| 5  | −0.34 | −0.68 | −0.02 | −2.1 | 5/10 |
+| 10 | −0.08 | −0.16 |  0.01 | −2.2 | 4/10 |
+| 15 | +0.23 | +0.46 |  0.29 | −3.1 | 6/10 |
+| 30 | +1.98 | +3.99 |  0.82 | −4.0 | 6/10 |
+| 50 | +2.94 | +5.96 |  1.16 | −4.6 | 7/10 |
+
+**Pool source comparison (pool=50, top-15):**
+
+| pool source | exec | 6mo ret% | annual% | Sharpe | worst DD% | +seeds |
+|---|---|---|---|---|---|---|
+| pnl     | market | +0.64 | +1.28 | 0.52 | −3.0 | 6/10 |
+| pnl     | limit  | +0.50 | +1.00 | 0.58 | −2.4 | 6/10 |
+| volume  | market | −0.45 | −0.89 | −0.13 | −5.96 | 4/10 |
+| random  | market | +0.23 | +0.46 | 0.29 | −3.1 | 6/10 |
+| random  | limit  | +0.26 | +0.53 | 0.36 | −1.8 | 7/10 |
+
+**Takeaways from synthetic data:**
+
+1. The look-ahead bias is real. Earlier naive runs printed +17% annual at top-50 —
+   that was because "top-50 by lifetime PnL" used trades from the validation
+   window itself. Once we control for it, honest synthetic expectation is closer
+   to **0–6% annual** depending on pool source and selection breadth.
+2. Counter-intuitively, **broader selection often beats narrower** — top-50 of a
+   pool of 50 outperforms top-15 in most configurations. The selection-window
+   PnL is too noisy a skill signal over 6 months.
+3. Limit-mode execution improves Sharpe and cuts drawdown but reduces trade
+   count by ~50%; net return is similar.
+4. Single-seed runs are wildly misleading — across 10 seeds, individual results
+   range from −21% to +8% on the same config.
+5. **Synthetic ≠ real.** Wallet-skill distribution is a guess. Run against
+   real Polymarket data to know.
 
 ## Tests
 
@@ -116,9 +161,9 @@ Polymarket data to get the actual answer for this strategy.**
 pytest polymarket/tests -v
 ```
 
-Ten tests, all offline:
-  * 7 simulator tests (sizing, caps, settlement, bad-row filtering, …)
-  * 3 backtest methodology tests (pipeline, selection step, window isolation)
+Thirteen tests, all offline:
+  * 9 simulator tests (sizing, caps, settlement, limit-order execution, bad-row filtering, …)
+  * 4 backtest methodology tests (pipeline, selection step, window isolation, pool source)
 
 ## Architecture
 
