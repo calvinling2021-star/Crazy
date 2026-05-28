@@ -63,21 +63,34 @@ class BacktestConfig:
     #            wallet enumeration.
     pool_rank_by: Literal["pnl", "volume", "random"] = "pnl"
     pool_random_seed: int = 0
+    # How to rank wallets inside the candidate pool by selection-window
+    # behaviour. 'pnl' = absolute selection PnL (default, current behaviour).
+    # 'roic' = pnl / capital_deployed — favours efficient bettors over whales.
+    # 'pnl_per_trade' = pnl / trade_count — favours high-edge-per-trade leaders.
+    leader_rank_metric: Literal["pnl", "roic", "pnl_per_trade"] = "pnl"
+    min_selection_trades: int = 5  # ignore wallets with fewer trades in selection window
+    min_selection_capital_usd: float = 100.0  # min $ deployed to be eligible
 
 
-def _estimate_wallet_pnl(
+def _estimate_wallet_stats(
     trades: list[dict[str, Any]],
     resolutions: dict[str, dict[str, float]],
     window_end: datetime,
-) -> float:
-    """Crude in-window PnL: proceeds - cost + mark-to-resolution of open positions."""
+) -> tuple[float, float, int]:
+    """Returns (pnl, cost_basis, num_trades) over the trade set.
+
+    pnl = proceeds - cost + mark-to-resolution of open positions.
+    cost_basis = total $ deployed on BUYs; used to compute return-on-capital.
+    """
     cost = 0.0
     proceeds = 0.0
-    positions: dict[tuple[str, str], tuple[float, float]] = {}  # (shares, cost)
+    n_trades = 0
+    positions: dict[tuple[str, str], tuple[float, float]] = {}
     for raw in trades:
         norm = _normalise_trade(raw, "x")
         if norm is None:
             continue
+        n_trades += 1
         key = (norm["market_id"], norm["outcome"])
         sh, c = positions.get(key, (0.0, 0.0))
         if norm["side"] == "BUY":
@@ -96,9 +109,13 @@ def _estimate_wallet_pnl(
             continue
         payoff = resolutions.get(mid, {}).get(oc)
         if payoff is None:
-            payoff = 0.5  # neutral assumption for unresolved
+            payoff = 0.5
         mark += sh * payoff
-    return proceeds - cost + mark
+    return proceeds - cost + mark, cost, n_trades
+
+
+def _estimate_wallet_pnl(trades, resolutions, window_end):
+    return _estimate_wallet_stats(trades, resolutions, window_end)[0]
 
 
 def fetch_resolutions(
@@ -206,14 +223,24 @@ def run_walk_forward(
     resolutions = fetch_resolutions(client, market_ids)
 
     selection_pnl: dict[str, float] = {}
+    selection_score: dict[str, float] = {}
     for wallet, trades in trades_by_wallet.items():
         sel_trades = [t for t in trades if _parse_ts(t.get("timestamp") or t.get("ts") or t.get("time")) < val_start]
         if not sel_trades:
             continue
-        selection_pnl[wallet] = _estimate_wallet_pnl(sel_trades, resolutions, val_start)
+        pnl, cost, n = _estimate_wallet_stats(sel_trades, resolutions, val_start)
+        if n < cfg.min_selection_trades or cost < cfg.min_selection_capital_usd:
+            continue
+        selection_pnl[wallet] = pnl
+        if cfg.leader_rank_metric == "roic":
+            selection_score[wallet] = pnl / max(cost, 1.0)
+        elif cfg.leader_rank_metric == "pnl_per_trade":
+            selection_score[wallet] = pnl / max(n, 1)
+        else:
+            selection_score[wallet] = pnl
 
-    ranked = sorted(selection_pnl.items(), key=lambda kv: kv[1], reverse=True)
-    top = dict(ranked[: cfg.top_k])
+    ranked = sorted(selection_score.items(), key=lambda kv: kv[1], reverse=True)
+    top = {w: selection_pnl[w] for w, _ in ranked[: cfg.top_k]}
     log.info(
         "selected top %d wallets by selection-window PnL "
         "(top=$%.0f, median=$%.0f, bottom=$%.0f)",
@@ -257,7 +284,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--capital", type=float, default=10_000.0)
     p.add_argument("--sizing", default="fraction_lead", choices=["fixed_usd", "fraction_lead", "kelly_pnl"])
     p.add_argument("--fixed-usd", type=float, default=100.0)
-    p.add_argument("--fraction", type=float, default=0.01)
+    p.add_argument("--fraction", type=float, default=0.02)
     p.add_argument("--fee-bps", type=float, default=20.0)
     p.add_argument("--slippage-bps", type=float, default=50.0)
     p.add_argument("--execution-mode", default="market", choices=["market", "limit"],
@@ -273,6 +300,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="close position if marked-to-last drops this % below cost basis (e.g. 0.25)")
     p.add_argument("--profit-take-pct", type=float, default=None,
                    help="close position if marked-to-last rises this % above cost basis (e.g. 0.40)")
+    p.add_argument("--conviction-size-step", type=float, default=0.0,
+                   help="scale copy size by (1 + extra_leaders * step) when more than min consensus agree")
+    p.add_argument("--conviction-size-max", type=float, default=3.0)
+    p.add_argument("--leader-rank-metric", default="pnl", choices=["pnl", "roic", "pnl_per_trade"],
+                   help="how to rank candidate pool by selection-window behaviour")
+    p.add_argument("--min-selection-trades", type=int, default=5)
+    p.add_argument("--min-selection-capital", type=float, default=100.0)
     p.add_argument("--max-position-usd", type=float, default=1_000.0)
     p.add_argument("--max-concurrent", type=int, default=50)
     p.add_argument("--per-leader-daily-cap", type=float, default=2_000.0)
@@ -363,6 +397,8 @@ def main(argv: list[str] | None = None) -> int:
         max_price=args.max_price,
         stop_loss_pct=args.stop_loss_pct,
         profit_take_pct=args.profit_take_pct,
+        conviction_size_step=args.conviction_size_step,
+        conviction_size_max=args.conviction_size_max,
         max_position_usd=args.max_position_usd,
         max_concurrent=args.max_concurrent,
         per_leader_daily_cap_usd=args.per_leader_daily_cap,
@@ -371,6 +407,9 @@ def main(argv: list[str] | None = None) -> int:
     cfg = BacktestConfig(
         pool_rank_by=args.pool_rank_by,
         pool_random_seed=args.pool_random_seed,
+        leader_rank_metric=args.leader_rank_metric,
+        min_selection_trades=args.min_selection_trades,
+        min_selection_capital_usd=args.min_selection_capital,
         candidate_pool=args.candidate_pool,
         top_k=args.top_k,
         selection_months=args.selection_months,

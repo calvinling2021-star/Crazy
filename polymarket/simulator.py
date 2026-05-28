@@ -65,9 +65,19 @@ class SimConfig:
     # Signal-quality filters:
     min_consensus_leaders: int = 1  # require N distinct leaders BUY same (mkt,outcome) inside window
     consensus_window_seconds: int = 24 * 3600
+    # Multi-window consensus: also require K leaders inside a tighter window.
+    # When >0, an event is emitted only if BOTH the outer (consensus_window_seconds,
+    # min_consensus_leaders) AND inner (tight_window_seconds, min_tight_leaders)
+    # thresholds are met. Models "many independent traders converging fast."
+    tight_window_seconds: int = 3600
+    min_tight_leaders: int = 0
     max_signal_age_seconds: int | None = None  # skip copies older than this since leader fill (no-op here; pre-filter event input)
     min_price: float = 0.05  # skip extreme prices (no edge to extract)
     max_price: float = 0.95
+    # Conviction sizing: when more leaders agree than the minimum, scale up.
+    # multiplier = min(conviction_size_max, 1 + extra_leaders * conviction_size_step)
+    conviction_size_step: float = 0.0
+    conviction_size_max: float = 3.0
     # Exit logic independent of leader:
     stop_loss_pct: float | None = None      # e.g. 0.25 → close if mark drops 25% below cost basis
     profit_take_pct: float | None = None    # e.g. 0.40 → close if mark rises 40% above cost basis
@@ -316,11 +326,13 @@ class CopyTradingSimulator:
     def _consensus_filter(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Causally emit an event only once N distinct leaders have BUY'd the
         same (market, outcome) within `consensus_window_seconds`. Sells pass
-        through unchanged so we can still mirror exits."""
+        through unchanged so we can still mirror exits. When `min_tight_leaders`
+        is set, also require K leaders inside `tight_window_seconds`."""
         window = self.cfg.consensus_window_seconds
         need = self.cfg.min_consensus_leaders
+        tight_window = self.cfg.tight_window_seconds
+        tight_need = self.cfg.min_tight_leaders
         kept: list[dict[str, Any]] = []
-        # Track recent buys per (market, outcome): list of (ts_seconds, leader)
         recent: dict[tuple[str, str], list[tuple[float, str]]] = defaultdict(list)
         for ev in events:
             if ev["side"] != "BUY":
@@ -334,8 +346,14 @@ class CopyTradingSimulator:
                 buf.pop(0)
             buf.append((ts, ev["leader"]))
             distinct = len({lead for _, lead in buf})
-            if distinct >= need:
-                kept.append(ev)
+            if distinct < need:
+                continue
+            if tight_need > 0:
+                tight_cutoff = ts - tight_window
+                tight_distinct = len({lead for t, lead in buf if t >= tight_cutoff})
+                if tight_distinct < tight_need:
+                    continue
+            kept.append({**ev, "n_consensus_leaders": distinct})
         return kept
 
     def _check_exits(self, ts: datetime) -> None:
@@ -386,17 +404,24 @@ class CopyTradingSimulator:
     def _size_for(self, ev: dict[str, Any], leader_pnls: dict[str, float]) -> float:
         m = self.cfg.sizing_mode
         if m == "fixed_usd":
-            return self.cfg.fixed_usd
-        if m == "fraction_lead":
-            return ev["notional"] * self.cfg.fraction
-        if m == "kelly_pnl":
+            base = self.cfg.fixed_usd
+        elif m == "fraction_lead":
+            base = ev["notional"] * self.cfg.fraction
+        elif m == "kelly_pnl":
             w = self.cfg.leader_weights.get(ev["leader"])
             if w is None:
                 pnl = max(0.0, leader_pnls.get(ev["leader"], 0.0))
                 total = sum(max(0.0, v) for v in leader_pnls.values()) or 1.0
                 w = pnl / total
-            return self.cfg.starting_capital_usd * w
-        raise ValueError(f"unknown sizing mode {m}")
+            base = self.cfg.starting_capital_usd * w
+        else:
+            raise ValueError(f"unknown sizing mode {m}")
+        if self.cfg.conviction_size_step > 0:
+            n = int(ev.get("n_consensus_leaders", 1))
+            extra = max(0, n - self.cfg.min_consensus_leaders)
+            mult = min(self.cfg.conviction_size_max, 1.0 + extra * self.cfg.conviction_size_step)
+            base *= mult
+        return base
 
     def _mark_to_market_equity(self) -> float:
         equity = self.cash
