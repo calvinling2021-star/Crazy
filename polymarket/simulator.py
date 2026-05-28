@@ -62,6 +62,15 @@ class SimConfig:
     execution_mode: ExecutionMode = "market"
     limit_fill_probability: float = 0.6
     execution_seed: int = 0
+    # Signal-quality filters:
+    min_consensus_leaders: int = 1  # require N distinct leaders BUY same (mkt,outcome) inside window
+    consensus_window_seconds: int = 24 * 3600
+    max_signal_age_seconds: int | None = None  # skip copies older than this since leader fill (no-op here; pre-filter event input)
+    min_price: float = 0.05  # skip extreme prices (no edge to extract)
+    max_price: float = 0.95
+    # Exit logic independent of leader:
+    stop_loss_pct: float | None = None      # e.g. 0.25 → close if mark drops 25% below cost basis
+    profit_take_pct: float | None = None    # e.g. 0.40 → close if mark rises 40% above cost basis
 
 
 @dataclass
@@ -180,9 +189,16 @@ class CopyTradingSimulator:
             events = [e for e in events if e["ts"] >= start_ts]
         if end_ts is not None:
             events = [e for e in events if e["ts"] <= end_ts]
-        log.info("simulating %d leader fills", len(events))
+        events = self._price_gate(events)
+        if self.cfg.min_consensus_leaders > 1:
+            events = self._consensus_filter(events)
+        log.info("simulating %d leader fills (after filters)", len(events))
 
         for ev in events:
+            # Update mark FIRST so SL/TP sees the fresh price, then check
+            # exits, then run the leader's BUY/SELL.
+            self._market_last_price[(ev["market_id"], ev["outcome"])] = ev["price"]
+            self._check_exits(ev["ts"])
             self._handle_event(ev, leader_pnls)
             self.equity_curve.append((ev["ts"], self._mark_to_market_equity()))
 
@@ -290,6 +306,82 @@ class CopyTradingSimulator:
                     fee_usd=fee,
                 )
             )
+
+    def _price_gate(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        lo, hi = self.cfg.min_price, self.cfg.max_price
+        if lo <= 0 and hi >= 1:
+            return events
+        return [e for e in events if lo <= e["price"] <= hi]
+
+    def _consensus_filter(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Causally emit an event only once N distinct leaders have BUY'd the
+        same (market, outcome) within `consensus_window_seconds`. Sells pass
+        through unchanged so we can still mirror exits."""
+        window = self.cfg.consensus_window_seconds
+        need = self.cfg.min_consensus_leaders
+        kept: list[dict[str, Any]] = []
+        # Track recent buys per (market, outcome): list of (ts_seconds, leader)
+        recent: dict[tuple[str, str], list[tuple[float, str]]] = defaultdict(list)
+        for ev in events:
+            if ev["side"] != "BUY":
+                kept.append(ev)
+                continue
+            key = (ev["market_id"], ev["outcome"])
+            ts = ev["ts"].timestamp()
+            buf = recent[key]
+            cutoff = ts - window
+            while buf and buf[0][0] < cutoff:
+                buf.pop(0)
+            buf.append((ts, ev["leader"]))
+            distinct = len({lead for _, lead in buf})
+            if distinct >= need:
+                kept.append(ev)
+        return kept
+
+    def _check_exits(self, ts: datetime) -> None:
+        sl, tp = self.cfg.stop_loss_pct, self.cfg.profit_take_pct
+        if sl is None and tp is None:
+            return
+        for key, pos in list(self.positions.items()):
+            if pos.shares <= 0 or pos.avg_price <= 0:
+                continue
+            mark = self._market_last_price.get(key)
+            if mark is None:
+                continue
+            ret = (mark - pos.avg_price) / pos.avg_price
+            if tp is not None and ret >= tp:
+                self._close_position(key, pos, mark, ts, reason="profit_take")
+            elif sl is not None and ret <= -sl:
+                self._close_position(key, pos, mark, ts, reason="stop_loss")
+
+    def _close_position(
+        self,
+        key: tuple[str, str],
+        pos: Position,
+        mark: float,
+        ts: datetime,
+        reason: str,
+    ) -> None:
+        fill_price = max(0.001, mark * (1 - self.cfg.slippage_bps / 10_000))
+        proceeds = pos.shares * fill_price
+        fee = proceeds * self.cfg.fee_bps / 10_000
+        self.cash += proceeds - fee
+        self.copy_trades.append(
+            CopyTrade(
+                ts=ts,
+                leader=reason,
+                market_id=key[0],
+                outcome=key[1],
+                side="SELL",
+                leader_price=mark,
+                fill_price=fill_price,
+                size_shares=pos.shares,
+                notional_usd=proceeds,
+                fee_usd=fee,
+            )
+        )
+        pos.shares = 0.0
+        pos.cost_basis_usd = 0.0
 
     def _size_for(self, ev: dict[str, Any], leader_pnls: dict[str, float]) -> float:
         m = self.cfg.sizing_mode

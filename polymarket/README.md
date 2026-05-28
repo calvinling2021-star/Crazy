@@ -79,17 +79,25 @@ backtest avoids this:
     trades from this window only, with real market resolutions.
 
 ```bash
-# Default config — pool=50 (top by lifetime PnL), narrow to top-15
+# Recommended config (best Sharpe on synthetic data):
+# pool=50, top-50, require >=2 leaders agree within 24h, limit execution.
 python -m polymarket.backtest \
-  --capital 10000 --sizing fraction_lead --fraction 0.01 \
-  --fee-bps 20 --slippage-bps 50
+  --candidate-pool 50 --top-k 50 \
+  --min-consensus-leaders 2 --consensus-window-hours 24 \
+  --execution-mode limit --limit-fill-prob 0.6 \
+  --capital 10000 --sizing fraction_lead --fraction 0.01
 
 # Honest baseline — bypass the lifetime-PnL leaderboard bias
-python -m polymarket.backtest --pool-rank-by random
-
-# Patient limit-order execution (no slippage, 60% fill rate)
-python -m polymarket.backtest --execution-mode limit --limit-fill-prob 0.6
+python -m polymarket.backtest --pool-rank-by random --min-consensus-leaders 2
 ```
+
+### Signal-quality filters
+
+| flag | what it does | found to help? |
+|---|---|---|
+| `--min-consensus-leaders N` | require N distinct leaders BUY same (market, outcome) within `--consensus-window-hours` | **yes — biggest improvement** |
+| `--min-price`, `--max-price` | skip trades at extreme prices | marginal |
+| `--stop-loss-pct`, `--profit-take-pct` | exit on adverse/favourable mark moves | **no — prediction markets need to play out; cutting early hurts** |
 
 ### Pool source affects results
 
@@ -139,21 +147,32 @@ Population: 200 wallets, skill ~ N(0, 0.08).
 | random  | market | +0.23 | +0.46 | 0.29 | −3.1 | 6/10 |
 | random  | limit  | +0.26 | +0.53 | 0.36 | −1.8 | 7/10 |
 
+**Best config after consensus filter (pool=50, top-50, N≥2 leaders, 24h window, 10 seeds):**
+
+| pool | exec | annual % | Sharpe | worst DD | +seeds |
+|---|---|---|---|---|---|
+| pnl | market 70bps | **+7.29** | 1.14 | −2.8% | 8/10 |
+| pnl | limit 0bps | +5.30 | 1.11 | **−1.6%** | **10/10** |
+| random | market 70bps | +3.21 | 0.24 | −3.8% | 8/10 |
+| random | limit | +2.50 | 0.46 | −2.3% | 7/10 |
+
 **Takeaways from synthetic data:**
 
-1. The look-ahead bias is real. Earlier naive runs printed +17% annual at top-50 —
-   that was because "top-50 by lifetime PnL" used trades from the validation
-   window itself. Once we control for it, honest synthetic expectation is closer
-   to **0–6% annual** depending on pool source and selection breadth.
-2. Counter-intuitively, **broader selection often beats narrower** — top-50 of a
-   pool of 50 outperforms top-15 in most configurations. The selection-window
-   PnL is too noisy a skill signal over 6 months.
-3. Limit-mode execution improves Sharpe and cuts drawdown but reduces trade
-   count by ~50%; net return is similar.
-4. Single-seed runs are wildly misleading — across 10 seeds, individual results
-   range from −21% to +8% on the same config.
-5. **Synthetic ≠ real.** Wallet-skill distribution is a guess. Run against
-   real Polymarket data to know.
+1. **Consensus is the highest-leverage filter** — requiring ≥2 leaders to BUY the
+   same (market, outcome) within 24h roughly 4× the return and turns Sharpe
+   positive across every pool source tested. Two leaders' agreement is genuinely
+   a higher-conviction signal than one leader's solo trade.
+2. **Stop-loss and profit-take both hurt.** Prediction markets need to play out
+   to resolution; cutting early gives up positive expectancy.
+3. **The look-ahead bias matters.** With pnl pool we get +7.3% annual; honest
+   random pool gives +3.2%. The truth is somewhere in between when run against
+   live data.
+4. **Limit-mode execution + consensus gives the cleanest risk profile:** Sharpe
+   1.11, worst DD −1.6%, 10/10 positive seeds on the biased pool; Sharpe 0.46
+   on the honest one.
+5. Single-seed runs are wildly misleading — always run a multi-seed sweep.
+6. **Synthetic ≠ real.** Wallet-skill distribution is a guess. Run against
+   real Polymarket data to know the actual number.
 
 ## Tests
 
@@ -161,9 +180,11 @@ Population: 200 wallets, skill ~ N(0, 0.08).
 pytest polymarket/tests -v
 ```
 
-Thirteen tests, all offline:
-  * 9 simulator tests (sizing, caps, settlement, limit-order execution, bad-row filtering, …)
-  * 4 backtest methodology tests (pipeline, selection step, window isolation, pool source)
+Seventeen tests, all offline:
+  * 13 simulator tests (sizing, caps, settlement, limit-order execution, consensus
+    filter, price gate, stop-loss, profit-take, bad-row filtering, …)
+  * 4 backtest methodology tests (pipeline, selection step, window isolation,
+    pool source)
 
 ## Architecture
 

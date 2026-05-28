@@ -182,6 +182,87 @@ def test_limit_mode_fills_at_leader_price_no_slippage():
     assert sim.copy_trades[0].fill_price == pytest.approx(0.40)  # no slippage in limit mode
 
 
+def test_price_gate_skips_extremes():
+    t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    leader = "0xx"
+    trades = [
+        _trade("BUY", 0.02, 100, t0, market="m1"),   # below floor
+        _trade("BUY", 0.50, 100, t0, market="m2"),   # ok
+        _trade("BUY", 0.98, 100, t0, market="m3"),   # above ceiling
+    ]
+    cfg = SimConfig(
+        sizing_mode="fixed_usd", fixed_usd=50.0,
+        min_leader_pnl_usd=0.0, fee_bps=0, slippage_bps=0,
+        min_price=0.05, max_price=0.95,
+    )
+    sim = CopyTradingSimulator(cfg)
+    sim.run({leader: trades}, leader_pnls={leader: 100_000.0})
+    markets = {ct.market_id for ct in sim.copy_trades}
+    assert markets == {"m2"}
+
+
+def test_consensus_filter_requires_n_leaders():
+    t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    # Only one leader buys market m1 — should be skipped at min_consensus=2.
+    # Two leaders buy m2 within window — m2 copy fires (only the 2nd).
+    wallet_trades = {
+        "0xa": [_trade("BUY", 0.40, 100, t0, market="m1")],
+        "0xb": [_trade("BUY", 0.40, 100, t0, market="m2")],
+        "0xc": [_trade("BUY", 0.42, 100, t0 + timedelta(hours=2), market="m2")],
+    }
+    cfg = SimConfig(
+        sizing_mode="fixed_usd", fixed_usd=50.0,
+        min_leader_pnl_usd=0.0, fee_bps=0, slippage_bps=0,
+        min_consensus_leaders=2, consensus_window_seconds=24 * 3600,
+    )
+    sim = CopyTradingSimulator(cfg)
+    sim.run(wallet_trades, leader_pnls={"0xa": 1e5, "0xb": 1e5, "0xc": 1e5})
+    markets = [ct.market_id for ct in sim.copy_trades]
+    assert markets == ["m2"]
+
+
+def test_stop_loss_closes_position():
+    t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    leader = "0xleader"
+    trades = [
+        _trade("BUY",  0.50, 1000, t0),
+        _trade("BUY",  0.30, 100,  t0 + timedelta(hours=1)),  # mark drops 40% → SL fires
+    ]
+    cfg = SimConfig(
+        starting_capital_usd=10_000.0,
+        sizing_mode="fixed_usd", fixed_usd=100.0,
+        min_leader_pnl_usd=0.0, fee_bps=0, slippage_bps=0,
+        stop_loss_pct=0.25,
+        per_leader_daily_cap_usd=10_000.0,
+    )
+    sim = CopyTradingSimulator(cfg)
+    sim.run({leader: trades}, leader_pnls={leader: 50_000.0})
+    # Should see 1 BUY, then 1 SL-driven SELL (leader column == "stop_loss"),
+    # then another BUY for the second event.
+    reasons = [ct.leader for ct in sim.copy_trades]
+    assert "stop_loss" in reasons
+
+
+def test_profit_take_closes_position():
+    t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    leader = "0xleader"
+    trades = [
+        _trade("BUY",  0.40, 1000, t0),
+        _trade("BUY",  0.65, 100,  t0 + timedelta(hours=1)),  # mark up 62% → TP fires
+    ]
+    cfg = SimConfig(
+        starting_capital_usd=10_000.0,
+        sizing_mode="fixed_usd", fixed_usd=100.0,
+        min_leader_pnl_usd=0.0, fee_bps=0, slippage_bps=0,
+        profit_take_pct=0.40,
+        per_leader_daily_cap_usd=10_000.0,
+    )
+    sim = CopyTradingSimulator(cfg)
+    sim.run({leader: trades}, leader_pnls={leader: 50_000.0})
+    reasons = [ct.leader for ct in sim.copy_trades]
+    assert "profit_take" in reasons
+
+
 def test_normalises_invalid_rows():
     t0 = datetime(2025, 1, 1, tzinfo=timezone.utc)
     leader = "0xleader"

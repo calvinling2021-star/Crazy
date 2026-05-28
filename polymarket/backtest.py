@@ -264,6 +264,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="'limit' fills at leader_price with `--limit-fill-prob`, else skips (no slippage)")
     p.add_argument("--limit-fill-prob", type=float, default=0.6)
     p.add_argument("--execution-seed", type=int, default=0)
+    p.add_argument("--min-consensus-leaders", type=int, default=1,
+                   help="only copy when N distinct leaders BUY same market+outcome within window")
+    p.add_argument("--consensus-window-hours", type=float, default=24.0)
+    p.add_argument("--min-price", type=float, default=0.05)
+    p.add_argument("--max-price", type=float, default=0.95)
+    p.add_argument("--stop-loss-pct", type=float, default=None,
+                   help="close position if marked-to-last drops this % below cost basis (e.g. 0.25)")
+    p.add_argument("--profit-take-pct", type=float, default=None,
+                   help="close position if marked-to-last rises this % above cost basis (e.g. 0.40)")
     p.add_argument("--max-position-usd", type=float, default=1_000.0)
     p.add_argument("--max-concurrent", type=int, default=50)
     p.add_argument("--per-leader-daily-cap", type=float, default=2_000.0)
@@ -348,6 +357,12 @@ def main(argv: list[str] | None = None) -> int:
         execution_mode=args.execution_mode,
         limit_fill_probability=args.limit_fill_prob,
         execution_seed=args.execution_seed,
+        min_consensus_leaders=args.min_consensus_leaders,
+        consensus_window_seconds=int(args.consensus_window_hours * 3600),
+        min_price=args.min_price,
+        max_price=args.max_price,
+        stop_loss_pct=args.stop_loss_pct,
+        profit_take_pct=args.profit_take_pct,
         max_position_usd=args.max_position_usd,
         max_concurrent=args.max_concurrent,
         per_leader_daily_cap_usd=args.per_leader_daily_cap,
