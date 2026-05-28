@@ -312,6 +312,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--per-leader-daily-cap", type=float, default=2_000.0)
     p.add_argument("--out", default="polymarket/results/backtest")
     p.add_argument("--synthetic", action="store_true", help="run on synthetic data (no network)")
+    p.add_argument("--cache", default=None,
+                   help="path to a JSON file produced by `polymarket.fetch` — replay without network")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--log-level", default="INFO")
     return p.parse_args(argv)
@@ -423,13 +425,22 @@ def main(argv: list[str] | None = None) -> int:
         from .synthetic import run_synthetic_backtest
 
         summary = run_synthetic_backtest(cfg, seed=args.seed)
+    elif args.cache:
+        from .cache import load_cached_client
+
+        client = load_cached_client(args.cache)
+        summary = run_walk_forward(client, cfg)
     else:
         client = PolymarketClient()
         try:
             summary = run_walk_forward(client, cfg)
         except RuntimeError as exc:
             print(f"\nBacktest failed against live Polymarket API: {exc}", file=sys.stderr)
-            print("Re-run with --synthetic to see the full pipeline on offline data.", file=sys.stderr)
+            print(
+                "Hint: pre-fetch with `python -m polymarket.fetch --top 200 --out cache.json`,"
+                " then re-run with `--cache cache.json`. Or use `--synthetic` to validate the pipeline.",
+                file=sys.stderr,
+            )
             return 2
 
     _print_summary(summary)

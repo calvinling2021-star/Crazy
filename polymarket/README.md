@@ -21,6 +21,48 @@ decision about jurisdiction, KYC, and risk.
 pip install -r polymarket/requirements.txt
 ```
 
+## Quick start (local machine)
+
+One command runs the whole pipeline: install deps, fetch real Polymarket
+data into a cache file, then run the recommended backtest plus the honest
+random-pool baseline against the cached data.
+
+```bash
+./polymarket/run_local.sh
+```
+
+Outputs land in `polymarket/results/backtest_main/` (recommended config) and
+`polymarket/results/backtest_honest/` (random-pool baseline). Compare the two
+`summary.json` files to see how much of the apparent edge comes from the
+lifetime-PnL leaderboard bias vs the strategy itself.
+
+### Fetch-once, replay-many
+
+The slow part of a real backtest is pulling ~200 wallets × thousands of trades
+from the Data API (5–10 min). The fetch is decoupled from the simulation so
+you only pay that cost once:
+
+```bash
+# 1) Fetch + cache real wallet data (slow, network-dependent)
+python -m polymarket.fetch --top 200 --out cache.json --include-markets
+
+# 2) Run any strategy config in seconds, no network
+python -m polymarket.backtest --cache cache.json \
+  --candidate-pool 50 --top-k 50 \
+  --min-consensus-leaders 2 --consensus-window-hours 24 \
+  --fraction 0.02
+
+# Iterate on knobs without re-fetching
+python -m polymarket.backtest --cache cache.json --fraction 0.03 \
+  --conviction-size-step 1.0
+```
+
+### Polymarket is geo-blocked
+
+Polymarket's API CDN rejects requests from US IPs and a few other regions.
+If `polymarket.fetch` fails with 403 errors, you'll need to run from a
+non-US network or via a VPN. The cached JSON works anywhere once you have it.
+
 ## Run
 
 ```bash
@@ -209,11 +251,12 @@ that scales return and drawdown roughly proportionally.
 pytest polymarket/tests -v
 ```
 
-Seventeen tests, all offline:
+Nineteen tests, all offline:
   * 13 simulator tests (sizing, caps, settlement, limit-order execution, consensus
     filter, price gate, stop-loss, profit-take, bad-row filtering, …)
   * 4 backtest methodology tests (pipeline, selection step, window isolation,
     pool source)
+  * 2 cache tests (live-vs-replay parity, version validation)
 
 ## Architecture
 
