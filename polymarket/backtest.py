@@ -269,6 +269,78 @@ def run_walk_forward(
     return summary
 
 
+def run_rolling_backtest(
+    client,
+    cfg: BacktestConfig,
+    selection_months: int = 6,
+    validation_months: int = 1,
+    n_windows: int = 6,
+    step_months: int = 1,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Rolling walk-forward: run the backtest across multiple disjoint
+    validation windows and aggregate the metrics. A single 6/6 split is one
+    data point; rolling 6/1 over six months tells you whether the strategy
+    is stable through time."""
+    import statistics as _stats
+
+    now = now or datetime.now(tz=timezone.utc)
+    runs: list[dict[str, Any]] = []
+    for i in range(n_windows):
+        offset = timedelta(days=30 * step_months * i)
+        window_cfg = BacktestConfig(
+            candidate_pool=cfg.candidate_pool, top_k=cfg.top_k,
+            selection_months=selection_months, validation_months=validation_months,
+            trades_per_wallet=cfg.trades_per_wallet, capital_usd=cfg.capital_usd, sim=cfg.sim,
+            pool_rank_by=cfg.pool_rank_by, pool_random_seed=cfg.pool_random_seed + i,
+            leader_rank_metric=cfg.leader_rank_metric,
+            min_selection_trades=cfg.min_selection_trades,
+            min_selection_capital_usd=cfg.min_selection_capital_usd,
+        )
+        try:
+            summary = run_walk_forward(client, window_cfg, now=now - offset)
+            runs.append({
+                "window_offset_months": step_months * i,
+                "return_pct": summary["return_pct"],
+                "sharpe_annualised": summary["sharpe_annualised"],
+                "max_drawdown_pct": summary["max_drawdown_pct"],
+                "win_rate_pct": summary["win_rate_pct"],
+                "num_copy_trades": summary["num_copy_trades"],
+                "selection_wallets": list(summary["selection_pnl"].keys()),
+            })
+        except Exception as exc:
+            log.warning("rolling window %d failed: %s", i, exc)
+
+    if not runs:
+        return {"runs": [], "error": "no successful windows"}
+
+    returns = [r["return_pct"] for r in runs]
+    sharpes = [r["sharpe_annualised"] for r in runs]
+    dds = [r["max_drawdown_pct"] for r in runs]
+    # Wallet stability: average Jaccard similarity between consecutive selection sets.
+    overlaps = []
+    for a, b in zip(runs[:-1], runs[1:]):
+        sa, sb = set(a["selection_wallets"]), set(b["selection_wallets"])
+        if sa or sb:
+            overlaps.append(len(sa & sb) / len(sa | sb))
+    wallet_stability = _stats.mean(overlaps) if overlaps else 0.0
+
+    return {
+        "n_windows": len(runs),
+        "selection_months": selection_months,
+        "validation_months": validation_months,
+        "step_months": step_months,
+        "mean_return_pct": _stats.mean(returns),
+        "stdev_return_pct": _stats.stdev(returns) if len(returns) > 1 else 0.0,
+        "mean_sharpe": _stats.mean(sharpes),
+        "mean_max_dd_pct": _stats.mean(dds),
+        "worst_max_dd_pct": min(dds),
+        "positive_windows": sum(1 for r in returns if r > 0),
+        "wallet_set_stability": wallet_stability,  # 0 = full rotation each step, 1 = no rotation
+        "runs": runs,
+    }
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Walk-forward 12-month backtest")
     p.add_argument("--candidate-pool", type=int, default=50,
@@ -310,6 +382,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--max-position-usd", type=float, default=1_000.0)
     p.add_argument("--max-concurrent", type=int, default=50)
     p.add_argument("--per-leader-daily-cap", type=float, default=2_000.0)
+    p.add_argument("--rolling", action="store_true",
+                   help="run a rolling walk-forward (multiple disjoint validation windows)")
+    p.add_argument("--rolling-windows", type=int, default=6)
+    p.add_argument("--rolling-step-months", type=int, default=1)
+    p.add_argument("--rolling-val-months", type=int, default=1)
+    p.add_argument("--rolling-sel-months", type=int, default=6)
     p.add_argument("--out", default="polymarket/results/backtest")
     p.add_argument("--synthetic", action="store_true", help="run on synthetic data (no network)")
     p.add_argument("--cache", default=None,
@@ -319,7 +397,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def _print_rolling_summary(summary: dict[str, Any]) -> None:
+    if not summary.get("runs"):
+        print("\n=== Rolling backtest: no successful windows ===")
+        return
+    print(
+        f"\n=== Rolling walk-forward: {summary['n_windows']} windows "
+        f"({summary['selection_months']}mo sel / {summary['validation_months']}mo val, "
+        f"step={summary['step_months']}mo) ==="
+    )
+    print(
+        tabulate(
+            [
+                ["mean return %",         f"{summary['mean_return_pct']:>+8.2f}"],
+                ["stdev return %",        f"{summary['stdev_return_pct']:>8.2f}"],
+                ["mean Sharpe",           f"{summary['mean_sharpe']:>8.2f}"],
+                ["mean max DD %",         f"{summary['mean_max_dd_pct']:>+8.2f}"],
+                ["worst max DD %",        f"{summary['worst_max_dd_pct']:>+8.2f}"],
+                ["positive windows",      f"{summary['positive_windows']}/{summary['n_windows']}"],
+                ["wallet set stability",  f"{summary['wallet_set_stability']:>8.3f}"],
+            ],
+            tablefmt="github",
+        )
+    )
+    rows = [
+        [r["window_offset_months"], f"{r['return_pct']:>+6.2f}", f"{r['sharpe_annualised']:>+5.2f}",
+         f"{r['max_drawdown_pct']:>+6.2f}", f"{r['win_rate_pct']:>5.1f}", r["num_copy_trades"]]
+        for r in summary["runs"]
+    ]
+    print("\nPer-window detail:")
+    print(tabulate(rows, headers=["mo offset", "ret %", "sharpe", "DD %", "win %", "trades"], tablefmt="github"))
+
+
 def _print_summary(summary: dict[str, Any]) -> None:
+    if "runs" in summary:
+        _print_rolling_summary(summary)
+        return
     headline = {
         k: summary[k]
         for k in (
@@ -421,20 +534,35 @@ def main(argv: list[str] | None = None) -> int:
         sim=sim_cfg,
     )
 
+    # Resolve client (synthetic / cache / live).
     if args.synthetic:
-        from .synthetic import run_synthetic_backtest
+        from .synthetic import _generate_population, _FakeClient
 
-        summary = run_synthetic_backtest(cfg, seed=args.seed)
+        wallets, trades, markets = _generate_population(
+            n_wallets=max(args.candidate_pool, 200), n_markets=400,
+            horizon_days=30 * (cfg.selection_months + cfg.validation_months) + 30,
+            seed=args.seed,
+        )
+        client = _FakeClient(wallets, trades, markets)
     elif args.cache:
         from .cache import load_cached_client
-
         client = load_cached_client(args.cache)
-        summary = run_walk_forward(client, cfg)
     else:
         client = PolymarketClient()
-        try:
+
+    try:
+        if args.rolling:
+            summary = run_rolling_backtest(
+                client, cfg,
+                selection_months=args.rolling_sel_months,
+                validation_months=args.rolling_val_months,
+                n_windows=args.rolling_windows,
+                step_months=args.rolling_step_months,
+            )
+        else:
             summary = run_walk_forward(client, cfg)
-        except RuntimeError as exc:
+    except RuntimeError as exc:
+        if not args.synthetic and not args.cache:
             print(f"\nBacktest failed against live Polymarket API: {exc}", file=sys.stderr)
             print(
                 "Hint: pre-fetch with `python -m polymarket.fetch --top 200 --out cache.json`,"
@@ -442,6 +570,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
+        raise
 
     _print_summary(summary)
 

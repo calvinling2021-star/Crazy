@@ -53,7 +53,25 @@ def _generate_population(
     n_markets: int = 400,
     horizon_days: int = 365,
     seed: int = 42,
+    skill_distribution: str = "heavy_tail",
+    size_distribution: str = "log_normal",
 ) -> tuple[list[WalletRank], dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
+    """Generate a synthetic Polymarket-like trading population.
+
+    Parameters
+    ----------
+    skill_distribution :
+      'normal'     — original N(0, 0.08), good for symmetry tests.
+      'heavy_tail' — mixture: 88% N(0, 0.04) + 10% N(0.04, 0.08) + 2% N(0.15, 0.10).
+                     Matches the observed pattern on Polymarket — most wallets
+                     are roughly random, a small tail are very skilled, and a
+                     handful of whales make life-changing returns.
+
+    size_distribution :
+      'uniform'     — original {100, 250, 500, 1000, 2500} draws.
+      'log_normal' — log-normally distributed sizes from ~$20 to ~$200k.
+                     Matches the spread observed in real wallet activity.
+    """
     rng = random.Random(seed)
     now = datetime.now(tz=timezone.utc)
     start = now - timedelta(days=horizon_days)
@@ -76,12 +94,30 @@ def _generate_population(
             "outcomePrices": [resolved_yes, 1 - resolved_yes],
         }
 
-    # Wallet skill: normal around 0; a tail of skilled players plus noise.
+    # Wallet skill: configurable distribution.
+    def _draw_skill() -> float:
+        if skill_distribution == "normal":
+            return rng.gauss(0.0, 0.08)
+        # heavy_tail: three-component mixture
+        r = rng.random()
+        if r < 0.88:
+            return rng.gauss(0.0, 0.04)  # noise majority
+        elif r < 0.98:
+            return rng.gauss(0.04, 0.08)  # skilled minority
+        else:
+            return rng.gauss(0.15, 0.10)  # rare whales
+
+    def _draw_size() -> int:
+        if size_distribution == "uniform":
+            return rng.choice([100, 250, 500, 1000, 2500])
+        # log_normal: median ~$300, fat tail to ~$200k
+        return max(10, int(rng.lognormvariate(5.7, 1.6)))
+
     wallets: list[WalletRank] = []
     trades: dict[str, list[dict[str, Any]]] = {}
     for i in range(n_wallets):
         wallet = f"0x{i:040x}"
-        skill = rng.gauss(0.0, 0.08)  # advantage over fair price; can be negative
+        skill = _draw_skill()
         activity = rng.randint(40, 250)
         pnl_proxy = 0.0
         vol_proxy = 0.0
@@ -96,7 +132,7 @@ def _generate_population(
             # Quoted market price wanders around true_p but lags reality.
             quoted = min(0.97, max(0.03, mkt["true_p"] + rng.gauss(-skill * 0.5, 0.06)))
             buy_price = quoted if outcome == "YES" else 1 - quoted
-            size = rng.choice([100, 250, 500, 1000, 2500])
+            size = _draw_size()
             rows.append({
                 "side": "BUY",
                 "price": round(buy_price, 4),
