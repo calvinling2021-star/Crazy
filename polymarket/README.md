@@ -57,11 +57,46 @@ python -m polymarket.backtest --cache cache.json --fraction 0.03 \
   --conviction-size-step 1.0
 ```
 
-### Polymarket is geo-blocked
+### Polymarket is geo-blocked — alternative data sources
 
 Polymarket's API CDN rejects requests from US IPs and a few other regions.
-If `polymarket.fetch` fails with 403 errors, you'll need to run from a
-non-US network or via a VPN. The cached JSON works anywhere once you have it.
+If `polymarket.fetch` fails with 403 errors, you have four options:
+
+| option | cost | latency | US-legal? | notes |
+|---|---|---|---|---|
+| **Dune Analytics** | $0 (free tier 2.5k queries/mo) | ~1 min/query | ✅ yes | Cleanest. Same on-chain data, SQL access, no VPN. |
+| Polygonscan API | $0 (rate-limited) | minutes | ✅ yes | Per-wallet tx history. Slower than Dune. |
+| Polygon RPC direct | $0 | hours (parse logs) | ✅ yes | Most authoritative. Slowest. |
+| VPS in EU/SG | ~$5/mo | one-time setup | gray area | `./run_local.sh` works as-is. |
+
+**Dune is the recommended alternative.** It's:
+- US-legal (Dune is a US company indexing public on-chain data)
+- Free for our usage volume (one monthly fetch + iteration on cached data)
+- Already supported by the codebase
+
+#### Dune setup (5 minutes)
+
+1. Sign up at https://dune.com and grab an API key from Settings → API.
+2. Create three saved queries with the SQL templates documented in
+   `polymarket/sources/dune.py` (top-100 line). Note each `query_id`
+   from the URL (`dune.com/queries/<id>`).
+3. Fetch:
+```bash
+export DUNE_API_KEY=...
+python -m polymarket.sources.dune \
+  --leaderboard-query 12345 \
+  --trades-query     67890 \
+  --markets-query    13579 \
+  --top 200 --window-months 12 \
+  --out cache.json
+```
+4. Run the backtest off the cached JSON — same as the local-API path:
+```bash
+python -m polymarket.backtest --cache cache.json \
+  --candidate-pool 50 --top-k 50 \
+  --min-consensus-leaders 2 --consensus-window-hours 24 \
+  --fraction 0.02
+```
 
 ## Run
 
@@ -251,12 +286,13 @@ that scales return and drawdown roughly proportionally.
 pytest polymarket/tests -v
 ```
 
-Nineteen tests, all offline:
+Twenty-one tests, all offline:
   * 13 simulator tests (sizing, caps, settlement, limit-order execution, consensus
     filter, price gate, stop-loss, profit-take, bad-row filtering, …)
   * 4 backtest methodology tests (pipeline, selection step, window isolation,
     pool source)
   * 2 cache tests (live-vs-replay parity, version validation)
+  * 2 Dune adapter tests (payload shape, optional markets query)
 
 ## Architecture
 
