@@ -57,11 +57,9 @@ def xs_momentum(near_ret: pd.DataFrame, lookback: int = 80) -> pd.DataFrame:
     return _xsection_long_short(cum)
 
 
-def carry(near: pd.DataFrame, far: pd.DataFrame, smooth: int = 5) -> pd.DataFrame:
-    """Carry/basis: annualized log(near/far); long backwardation, short contango."""
-    basis = np.log(near / far)
-    basis = basis.rolling(smooth).mean()      # de-noise
-    return _xsection_long_short(basis)
+def carry(basis: pd.DataFrame, smooth: int = 5) -> pd.DataFrame:
+    """Carry/basis: rank on the RAW basis; long backwardation, short contango."""
+    return _xsection_long_short(basis.rolling(smooth).mean())
 
 
 def basis_momentum(near_ret: pd.DataFrame, far_ret: pd.DataFrame,
@@ -72,16 +70,18 @@ def basis_momentum(near_ret: pd.DataFrame, far_ret: pd.DataFrame,
     return _xsection_long_short(cum)
 
 
-def curve_momentum(near: pd.DataFrame, far: pd.DataFrame,
-                   lookback: int = 60) -> pd.DataFrame:
-    """Curve momentum: momentum of the calendar spread (basis) itself."""
-    basis = np.log(near / far)
-    chg = basis - basis.shift(lookback)        # trend in the curve slope
+def curve_momentum(basis: pd.DataFrame, lookback: int = 60) -> pd.DataFrame:
+    """Curve momentum: momentum (trend) of the calendar spread / basis itself."""
+    chg = basis - basis.shift(lookback)
     return _xsection_long_short(chg)
 
 
-def all_legs(near, far, near_ret, far_ret, params=None):
-    """Build all five leg-weight panels. `params` overrides lookbacks."""
+def all_legs(md, near_ret, far_ret, params=None):
+    """Build all five leg-weight panels from a MarketData bundle `md`.
+
+    Uses md.near/md.far (returns) for momentum/basis-momentum and the RAW
+    md.basis for carry/curve (correct term-structure slope on real data).
+    """
     p = {
         "ts_lookback": 60,
         "xs_lookback": 80,
@@ -94,7 +94,7 @@ def all_legs(near, far, near_ret, far_ret, params=None):
     return {
         "ts_mom": ts_momentum(near_ret, p["ts_lookback"]),
         "xs_mom": xs_momentum(near_ret, p["xs_lookback"]),
-        "carry": carry(near, far, p["carry_smooth"]),
+        "carry": carry(md.basis, p["carry_smooth"]),
         "basis_mom": basis_momentum(near_ret, far_ret, p["bmom_lookback"]),
-        "curve_mom": curve_momentum(near, far, p["curve_lookback"]),
+        "curve_mom": curve_momentum(md.basis, p["curve_lookback"]),
     }

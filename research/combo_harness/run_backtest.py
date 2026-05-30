@@ -30,10 +30,14 @@ def main():
     args = ap.parse_args()
 
     if args.source == "synthetic":
-        near, far = SyntheticSource(seed=args.seed).load()
+        md = SyntheticSource(seed=args.seed).load()
     else:
-        raise SystemExit("Wire up TqsdkSource in data.py with your account/symbols.")
+        raise SystemExit(
+            "For real data: in code, build TqsdkSource(auth=(phone,pwd)).load() "
+            "or AkShareSource(contract_lists=...).load(), then pass the MarketData "
+            "to backtest.run(). See data.py and README.")
 
+    near = md.near
     print(f"\n=== Commodity multi-factor combo — backtest ({args.source} data) ===")
     print(f"universe: {near.shape[1]} contracts   sample: "
           f"{near.index[0].date()} -> {near.index[-1].date()}   rows: {near.shape[0]}")
@@ -43,7 +47,7 @@ def main():
                   crash_cap=2.0, rebalance_days=5)
 
     # --- full combo ---
-    res = backtest.run(near, far, legs_subset=base_legs, **run_kw)
+    res = backtest.run(md, legs_subset=base_legs, **run_kw)
     m = res["metrics"]
     print("\n[FULL COMBO]")
     print("  " + _fmt(m))
@@ -52,34 +56,42 @@ def main():
     # --- each leg standalone ---
     print("\n[STANDALONE LEGS]")
     for leg in base_legs:
-        lm = backtest.run(near, far, legs_subset=[leg], **run_kw)["metrics"]
+        lm = backtest.run(md, legs_subset=[leg], **run_kw)["metrics"]
         print(f"  {leg:10s} Sharpe={lm['sharpe']:5.2f}  ann={lm['ann_return']*100:6.2f}%  "
               f"turnover={lm['ann_turnover_x']:.1f}x")
 
     # --- marginal IR (does each leg earn its place?) ---
     print("\n[MARGINAL CONTRIBUTION]  (combo Sharpe minus combo-without-leg)")
-    mir = validation.marginal_ir(near, far, base_legs, **run_kw)
+    mir = validation.marginal_ir(md, base_legs, **run_kw)
     for leg, d in sorted(mir.items(), key=lambda x: -x[1]["marginal"]):
         flag = "keep" if d["marginal"] > 0 else "DROP?"
         print(f"  {leg:10s} marginal={d['marginal']:+.3f}  "
               f"(combo {d['combo_sharpe']:.2f} -> without {d['without_leg']:.2f})  [{flag}]")
 
-    # --- deflated-Sharpe gate (with raw-t contrast + N_eff sensitivity) ---
+    # --- deflated-Sharpe gate: simplified N_eff sensitivity + FULL skew-corrected DSR
     import math
     raw_t = m["sharpe"] * math.sqrt(m["years"])
     print(f"\n[DEFLATED-SHARPE GATE]  combo Sharpe={m['sharpe']:.2f} over {m['years']:.1f}y")
     print(f"  raw t-stat (no deflation) = {raw_t:.2f}  (looks great -- but ignores search)")
-    print("  deflated for how many configs you searched (N_eff):")
+    print("  simplified floor (sqrt(2 ln N)) by configs searched (N_eff):")
     for ne in sorted({10, 30, args.n_trials, 100}):
         passes, t_defl, floor = validation.deflated_gate(m["sharpe"], m["years"], ne)
         tag = "  <- reported" if ne == args.n_trials else ""
         print(f"    N_eff={ne:>4}: floor={floor:.3f}  deflated t={t_defl:5.2f}  "
               f"-> {'PASS' if passes else 'FAIL'}{tag}")
-    print("  (The more configs you tried, the higher the bar. Be honest about N_eff.)")
+    dsr = validation.deflated_sharpe(res["net"], args.n_trials)
+    if not dsr.get("insufficient"):
+        print(f"  FULL DSR (skew/kurtosis-corrected, N_eff={args.n_trials}):")
+        print(f"    skew={dsr['skew']:+.2f} excess_kurt={dsr['excess_kurt']:+.2f}  "
+              f"raw t={dsr['t_raw']:.2f}  emax floor={dsr['emax_floor']:.2f}  "
+              f"deflated t={dsr['t_deflated']:.2f}")
+        print(f"    DSR prob = {dsr['dsr_prob']:.3f}  -> "
+              f"{'PASS (>0.95)' if dsr['passes'] else 'FAIL (<=0.95)'}")
+    print("  (More configs => higher bar. Be honest about N_eff.)")
 
     # --- capacity test ---
     print("\n[CAPACITY TEST]  (impact multiplier on costs)")
-    for row in validation.capacity_test(near, far, legs_subset=base_legs, **run_kw):
+    for row in validation.capacity_test(md, legs_subset=base_legs, **run_kw):
         print(f"  impact x{row['capacity_mult']:.0f}: Sharpe={row['sharpe']:.2f}  "
               f"ann={row['ann_return']*100:6.2f}%  maxDD={row['max_drawdown']*100:6.2f}%")
 

@@ -47,19 +47,19 @@ def _apply_rebalance(weights: pd.DataFrame, rebalance_days: int) -> pd.DataFrame
     return held.ffill().fillna(0.0)
 
 
-def run(near, far, params=None, capacity_mult=1.0,
+def run(md, params=None, capacity_mult=1.0,
         target_leg_vol=0.10, target_port_vol=0.10, vol_window=60,
         crash_cap=2.0, legs_subset=None, rebalance_days=5):
-    """Run one backtest configuration.
+    """Run one backtest configuration on a MarketData bundle `md`.
 
     Returns dict with: net return series, gross series, weights, metrics, diag.
     `legs_subset` (list of leg names) lets you backtest a subset for marginal-IR.
     `rebalance_days` holds weights between rebalances (realistic turnover).
     """
-    near_ret = returns_from_prices(near)
-    far_ret = returns_from_prices(far)
+    near_ret = returns_from_prices(md.near)
+    far_ret = returns_from_prices(md.far)
 
-    leg_w = signals.all_legs(near, far, near_ret, far_ret, params)
+    leg_w = signals.all_legs(md, near_ret, far_ret, params)
     if legs_subset is not None:
         leg_w = {k: v for k, v in leg_w.items() if k in legs_subset}
 
