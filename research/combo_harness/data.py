@@ -189,6 +189,16 @@ class AkShareSource:
         self.contract_lists = dict(contract_lists)
         self.oi_min = oi_min
 
+    @classmethod
+    def auto(cls, products=None, start_year=2015, end_year=2024, oi_min=1.0):
+        """One-call no-account path: auto-generate maturity codes for the
+        universe (see contracts.py), then fetch+build. Non-existent codes are
+        skipped. Heavy on HTTP — narrow the year range or use TqsdkSource for
+        bulk history."""
+        from .contracts import generate_contract_codes
+        lists = generate_contract_codes(products, start_year, end_year)
+        return cls(contract_lists=lists, oi_min=oi_min)
+
     def load(self) -> MarketData:
         try:
             import akshare as ak
