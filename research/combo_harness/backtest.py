@@ -70,8 +70,12 @@ def run(near, far, params=None, capacity_mult=1.0,
     )
     combined = _apply_rebalance(combined, rebalance_days)
 
+    # PnL on day t comes from the position decided at t-1 (combined.shift(1)).
+    # The trade that established that position (turnover at t-1) must be charged
+    # on the same day its position starts earning -> shift the cost by 1 too,
+    # so cost and PnL are time-aligned (fixes a one-day cost/PnL misalignment).
     gross = (combined.shift(1) * near_ret).sum(axis=1)
-    cost = costs.cost_series(combined, capacity_mult=capacity_mult)
+    cost = costs.cost_series(combined, capacity_mult=capacity_mult).shift(1).fillna(0.0)
     net = gross - cost
 
     m = _metrics(net, gross, combined)

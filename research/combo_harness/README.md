@@ -53,9 +53,23 @@ deflated-Sharpe gate shows how the bar rises with the number of configs searched
 
 ## Known simplifications (todo before risking capital)
 
-- Back-adjustment/roll handling is assumed upstream of `near`/`far`; verify it.
+- **The synthetic source injects its own signal — its Sharpe is circular and is
+  NOT evidence of edge.** It exists only to exercise the plumbing. Real evidence
+  requires `TqsdkSource` + point-in-time data. Never cite a synthetic Sharpe.
+- **Deflated-Sharpe floor here is the *simplified* DSR** (`E[max] = √(2·ln N)·SE`
+  with `SE = 1/√years`). The full Bailey–López de Prado DSR corrects `SE(SR)`
+  for skew/kurtosis and uses observation count, not years — commodity-combo
+  returns are negatively skewed, so the true floor is *higher*. Upgrade before
+  trusting a borderline pass.
+- **Vol-targeting vs. rebalance:** leg vol-scales are computed on daily (un-held)
+  returns, so the realised vol target drifts once weights are frozen for
+  `rebalance_days`. Compute realised vol on the actually-held series to fix.
+- Back-adjustment/roll handling is assumed upstream of `near`/`far`; **verify it
+  — a bad roll fabricates or hides alpha** (the panel's #1 operational risk).
+- `DEFAULT_UNIVERSE` is a fixed currently-liquid list → **survivorship bias** on
+  real data unless you build point-in-time contract membership.
 - Cost model is representative, not venue-exact; add real commission + slippage
-  + per-contract impact curves.
-- Add per-exchange position limits and night-session margin (China specifics).
+  + per-contract impact curves, and per-exchange position limits + night-session
+  margin (China specifics).
 - Consider rebalance bands (trade only when target drifts past a threshold) to
   cut turnover further than the simple `rebalance_days` schedule.
