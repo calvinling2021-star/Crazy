@@ -10,7 +10,7 @@
 
 ## 0. What "validate 1,000 strategies" honestly means here
 
-You cannot validate 1,000 strategies by *trusting* 1,000 backtests — that is the trap the literature warns about. When you test 1,000 things, the best-looking ones are mostly **luck**. Harvey, Liu & Zhu (2016): of 313 published "factors," only **9 survive** a proper multiple-testing correction. Hou, Xue & Zhang (2020): **82%** of 452 anomalies fail, and even survivors have "much smaller" magnitudes out of sample. For China, Li, Liu, Liu & Wei (2024, *Management Science*): of **469** A-share anomalies, **~83–87% fail** after risk adjustment.
+You cannot validate 1,000 strategies by *trusting* 1,000 backtests — that is the trap the literature warns about. When you test 1,000 things, the best-looking ones are mostly **luck**. Harvey, Liu & Zhu (2016): of 313 published "factors," only **9 survive** a proper multiple-testing correction. Hou, Xue & Zhang (2020): **82%** of 452 anomalies fail, and survivors have "much smaller" magnitudes out of sample. For China, Li, Liu, Liu & Wei (2024, *Management Science*): of **469** A-share anomalies, **~83–87% fail** after risk adjustment.
 
 There is **no proprietary price data in this environment**, so this is a transparent **screening model** — a meta-analysis plus the exact corrections those papers use:
 
@@ -47,7 +47,7 @@ These knobs are exactly what practitioners grid-search — which is *why* they g
 ## 2. Two corrections that separate edge from noise
 
 ### 2a. Tier replication haircut (applied to gross Sharpe)
-Multiple-testing deflation alone is *not enough*, because it subtracts the same floor from everyone and so doesn't penalize **unreliable** sources. The replication literature is explicit that reported Sharpes from unrefereed / heavily-searched work **shrink** out of sample (Hou-Xue-Zhang: magnitudes "much smaller"; Chen-Zimmermann document replication shrinkage). So gross Sharpe is scaled by tier before any other step:
+Multiple-testing deflation alone is *not enough*: it subtracts the same floor from everyone and so does not penalize **unreliable** sources. The replication literature is explicit that reported Sharpes from unrefereed / heavily-searched work **shrink** out of sample (Hou-Xue-Zhang: magnitudes "much smaller"; Chen-Zimmermann document replication shrinkage). So gross Sharpe is scaled by tier *before* any other step:
 
 | Tier | Meaning | Haircut |
 |---|---|---:|
@@ -55,19 +55,19 @@ Multiple-testing deflation alone is *not enough*, because it subtracts the same 
 | B | peer-reviewed single-study | ×0.85 |
 | C | preprint / speculative (e.g. the single-author ML/DL A-share papers) | ×0.55 |
 
-This is the step that correctly demotes the **highest-*reported*-Sharpe** strategies (the ML/DL preprints, raw band up to 2.0) below the replicated commodity factors.
+This is the step that correctly demotes the **highest-*reported*-Sharpe** strategies (the ML/DL preprints, raw band up to 2.0) below the replicated commodity factors — and, as Section 4 shows, removes them from the survivor set entirely.
 
 ### 2b. Effective number of independent trials (for the noise floor)
-Treating all 1,000 variants as independent would overstate the penalty — most are parameter tweaks of ~30 ideas and are highly correlated. The defensible count is **distinct (family × market) clusters** (variants within a cluster ≈ 0.8 correlated ≈ one effective trial). The screen finds **38 clusters → noise floor 0.766** annual Sharpe. Sensitivity is reported so the result is not an artefact:
+Treating all 1,000 variants as independent would overstate the penalty — most are parameter tweaks of ~30 ideas and are highly correlated. The defensible count is **distinct (family × market) clusters** (variants within a cluster ≈ 0.8 correlated ≈ one effective trial). The screen finds **56 clusters → noise floor 0.819** annual Sharpe. Sensitivity is reported so the result is not an artefact:
 
 | Assumed independent trials `N_eff` | Noise floor | Survivors @95% |
 |---:|---:|---:|
-| 30 (one per family) | 0.730 | 14 |
-| **38 (cluster-based — used)** | **0.766** | **8** |
-| 250 | 0.945 | 1 |
-| 1,000 (fully independent) | 1.065 | 1 |
+| 30 (one per family) | 0.753 | 14 |
+| **56 (cluster-based — used)** | **0.819** | **10** |
+| 250 | 0.959 | 1 |
+| 1,000 (fully independent) | 1.073 | 0 |
 
-**Read this as the core lesson:** the number of strategies that look like real edge depends almost entirely on how many things you (admit you) tried. Under the honest middle assumption, **8 of 1,000 survive**; under full independence, just **1**.
+**Read this as the core lesson:** the number of strategies that look like real edge depends almost entirely on how many things you (admit you) tried. Under the honest middle assumption, **10 of 1,000 survive**; under full independence, **none**.
 
 ---
 
@@ -76,49 +76,51 @@ Treating all 1,000 variants as independent would overstate the penalty — most 
 | Stage | Surviving | % |
 |---|---:|---:|
 | **Total screened** | 1,000 | 100% |
-| Pass naïve **t > 2.0** (cost only, the discredited bar) | 207 | 20.7% |
-| **SURVIVE deflated t > 1.96 (95%, cluster floor + tier haircut)** | **8** | **0.8%** |
-| Survive strict deflated **t > 2.50** | 0 | 0.0% |
+| Pass naïve **t > 2.0** (cost only, the discredited bar) | 306 | 30.6% |
+| **SURVIVE deflated t > 1.96 (95%, cluster floor + tier haircut)** | **10** | **1.0%** |
+| Survive strict deflated **t > 2.50** | 1 | 0.1% |
 
-The 207-vs-8 collapse *is* the multiple-testing correction working: **~96% of strategies that pass the naïve bar are wiped out** once you account for searching 1,000 of them — squarely consistent with Harvey-Liu-Zhu (9/313 survive) and the China A-share replication evidence. **Zero** clear the strict t > 2.50 bar, so even the 8 survivors are only *marginally* significant: "worth a real costed backtest," not "guaranteed alpha."
+The 306-vs-10 collapse *is* the multiple-testing correction working: **~97% of strategies that pass the naïve bar are wiped out** once you account for searching 1,000 of them — squarely consistent with Harvey-Liu-Zhu (9/313 survive) and the China A-share replication evidence. Only **1** strategy clears the strict t > 2.50 bar, so even the survivors are *marginal*: "worth a real costed backtest," not "guaranteed alpha."
 
 ---
 
-## 4. The edge — the 8 surviving strategies (verbatim from the registry)
+## 4. The edge — the 10 surviving strategies (verbatim from the registry)
 
 | # | Family | Market | Lookback | Hold | Weighting / Universe | Gross SR | Net deflated SR | Deflated t | Tier |
 |---:|---|---|---:|---:|---|---:|---:|---:|:--:|
-| 1 | Commodity multi-factor combo | Commodity futures | 120d | 60d | value / all | 1.643 | **0.861** | 2.98 | A |
-| 2 | Commodity multi-factor combo | Commodity futures | 60d | 20d | vol-scaled / liquid-top50% | 1.610 | 0.832 | 2.88 | A |
-| 3 | Commodity multi-factor combo | Commodity futures | 20d | 60d | rank / ex-small30 | 1.594 | 0.819 | 2.83 | A |
-| 4 | Commodity multi-factor combo | Commodity futures | 250d | 20d | equal / top300 | 1.582 | 0.801 | 2.77 | A |
-| 5 | Commodity multi-factor combo | Commodity futures | 120d | 10d | rank / liquid-top50% | 1.582 | 0.792 | 2.74 | A |
-| 6 | Commodity multi-factor combo | Commodity futures | 60d | 10d | value / ex-small30 | 1.569 | 0.776 | 2.69 | A |
-| 7 | Commodity basis-momentum | Commodity futures | 20d | 20d | vol-scaled / liquid-top50% | 1.398 | 0.626 | 2.17 | A |
-| 8 | Commodity multi-factor combo | Commodity futures | 120d | 60d | equal / liquid-top50% | 1.398 | 0.625 | 2.17 | A |
+| 1 | Commodity multi-factor combo | Commodity futures | 250d | 60d | vol-scaled / all | 1.559 | **0.723** | 2.50 | A |
+| 2 | Commodity multi-factor combo | Index futures | 10d | 10d | equal / all | 1.554 | 0.706 | 2.45 | A |
+| 3 | Commodity multi-factor combo | Commodity futures | 20d | 60d | equal / top300 | 1.524 | 0.688 | 2.38 | A |
+| 4 | Commodity multi-factor combo | Commodity futures | 250d | 10d | vol-scaled / all | 1.543 | 0.682 | 2.36 | A |
+| 5 | Commodity multi-factor combo | Commodity futures | 120d | 5d | equal / liquid-top50% | 1.559 | 0.680 | 2.35 | A |
+| 6 | Commodity multi-factor combo | Commodity futures | 60d | 20d | equal / all | 1.506 | 0.657 | 2.28 | A |
+| 7 | Commodity multi-factor combo | Index futures | 250d | 10d | equal / ex-small30 | 1.459 | 0.612 | 2.12 | A |
+| 8 | Commodity multi-factor combo | Index futures | 60d | 20d | vol-scaled / ex-small30 | 1.416 | 0.577 | 2.00 | A |
+| 9 | Commodity multi-factor combo | Index futures | 60d | 5d | equal / all | 1.432 | 0.573 | 1.99 | A |
+| 10 | Commodity multi-factor combo | Index futures | 10d | 10d | rank / ex-small30 | 1.414 | 0.566 | 1.96 | A |
 
-**All 8 survivors are Tier-A commodity-futures strategies. All 8 are on `commodity_fut`. Seven are the multi-factor combo; one is basis-momentum.**
+**All 10 survivors are the Tier-A "Commodity multi-factor combo" family** (momentum + basis + basis-momentum + carry + curve), split across the two futures markets (commodity futures and equity-index futures). 
 
-- **By category:** commodity futures = 8; everything else = 0.
-- **By family:** Commodity multi-factor combo = 7, Commodity basis-momentum = 1.
-- **Medium lookbacks (20–250d) + medium holds (10–60d)** dominate. No short-lookback/short-hold variant survives — they are eaten by turnover costs. The screen independently reproduces the rule that *slow* signals survive and *fast* ones don't (outside genuine HFT).
-- Commodity futures win on the three properties that matter *after* the haircuts: **Tier-A replicated alpha, the lowest transaction cost (~6 bp), and full shortability.**
+- **By category:** futures = 10; everything else = 0.
+- **By family:** Commodity multi-factor combo = 10.
+- The **single strict (t > 2.50) survivor** is #1 — the vol-scaled commodity-futures combo. Everything else is borderline (t between 1.96 and 2.50).
+- Lookbacks and holds span the grid, but the survivors cluster in **commodity/index futures** because they win on the three properties that matter *after* the haircuts: **Tier-A replicated alpha, the lowest transaction cost (~4–6 bp), and full shortability.**
 
 **What did NOT survive, and why it matters:**
-- **ML/DL A-share equity** (the highest *reported* Sharpe, ~2.0): demoted by the ×0.55 Tier-C replication haircut and high turnover — **none survive**. This is the single most important validation outcome: the flashiest numbers are the least real.
-- **A-share equity factors** (value/quality, Tier A) are credible but their net deflated Sharpe sits just under the 95% bar at this floor; they reappear only under the more generous `N_eff = 30` assumption (14 survivors). They are the legitimate *long-only* core even though they don't clear this particular long-short bar.
-- **Index-futures, options, HK, A/H, convertibles:** none survive — too costly, too speculative, or short-sale-constrained.
+- **ML/DL A-share equity** (the highest *reported* Sharpe, ~2.0): demoted by the ×0.55 Tier-C replication haircut plus turnover — **none survive**. This is the single most important validation outcome: the flashiest numbers are the least real.
+- **A-share / HK equity factors** (value/quality, Tier A): credible, but their net deflated Sharpe sits just under the 95% bar at this floor. They reappear only under the more generous `N_eff = 30` assumption (14 survivors). They remain the legitimate *long-only* core even though no single-name long-short variant clears this particular bar.
+- **Single-signal commodity factors, options, A/H, convertibles, HK ML:** none survive — only the *diversified* commodity combo has enough gross Sharpe to clear the floor after costs; single signals, options (high cost + Tier B), and short-constrained ideas fall short.
 
 ---
 
 ## 5. What this proves about "better alpha"
 
-1. **More backtests ≠ more alpha.** Screening 1,000 strategies did **not** find a better edge than the companion report's top pick — it found the *same* edge (commodity multi-factor) and **quantified that >99% of the rest are illusions** once costs, replication shrinkage, and data-snooping are accounted for.
-2. **The genuinely better-alpha frontier is commodity-futures multi-signal** — the only place where Tier-A evidence, low cost, and shortability line up. It owns 7 of the 8 survivor slots.
+1. **More backtests ≠ more alpha.** Screening 1,000 strategies did **not** find a better edge than the companion report's top pick — it found the *same* edge (commodity multi-factor) and **quantified that ~99% of the rest are illusions** once costs, replication shrinkage, and data-snooping are accounted for.
+2. **The genuinely better-alpha frontier is the diversified commodity-futures multi-factor combo** — the only family where Tier-A evidence, low cost, and shortability line up. It owns **all 10** survivor slots.
 3. **The highest *reported* Sharpes (ML/DL equity) are the least real** and vanish once you apply a replication haircut. Chasing them is negative expected value.
-4. **Even the survivors are marginal:** net deflated Sharpe ≈ 0.6–0.9, deflated t ≈ 2.2–3.0, and **zero** clear t > 2.50. The honest conclusion is not "here are 8 money machines" but "these 8 are the only ones of 1,000 even worth a real, costed, out-of-sample backtest."
+4. **Even the survivors are marginal:** net deflated Sharpe ≈ 0.57–0.72, deflated t ≈ 2.0–2.5, and only **1** clears t > 2.50. The honest conclusion is not "here are 10 money machines" but "these 10 are the only ones of 1,000 even worth a real, costed, out-of-sample backtest."
 
-> **Bottom line:** Of 1,000 plausible strategies, **8 (0.8%)** survive transaction costs, replication shrinkage, and the data-snooping correction at 95% confidence — and **all 8 are low-turnover commodity-futures factor strategies**, led by the multi-factor combo (7 of 8). That, and only that, is the edge. The exercise's real value is showing how few survive, and why.
+> **Bottom line:** Of 1,000 plausible strategies, **10 (1.0%)** survive transaction costs, replication shrinkage, and the data-snooping correction at 95% confidence — and **all 10 are the diversified commodity-futures multi-factor combo**. That, and only that, is the edge. The exercise's real value is showing how few survive, and why.
 
 ---
 
