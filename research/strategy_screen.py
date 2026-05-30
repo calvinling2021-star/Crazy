@@ -3,62 +3,59 @@
 Strategy registry generator + multiple-testing validation screen
 ================================================================
 
-Purpose
--------
 "Validate 1000 strategies to find the edge."
 
-There is no proprietary price data in this environment, so we CANNOT run 1000
-live backtests. What we CAN do -- and what the academic replication literature
-actually does -- is:
+There is NO proprietary price data in this environment, so we cannot run 1000
+live backtests. Instead this is a transparent SCREENING MODEL -- a meta-analysis
+plus the exact corrections the replication literature uses to tell real edge
+from luck:
 
-  1. Enumerate the full strategy universe as the cross-product of documented
-     SIGNAL FAMILIES x MARKETS x PARAMETERIZATIONS  (-> ~1000 variants).
-  2. Assign each variant a literature-grounded GROSS expected Sharpe band
-     (anchored to the peer-reviewed sources in the companion report).
-  3. Apply two haircuts that separate real edge from data-mined noise:
-       (a) TRANSACTION-COST haircut  (turnover x per-market round-trip cost)
-       (b) DEFLATED-SHARPE / MULTIPLE-TESTING haircut
-           When you try N strategies, the best ones look good by luck alone.
-           Bailey & Lopez de Prado (2014): expected max Sharpe under the null
-           (true SR = 0) across N independent trials is approximately
-                E[max SR_noise] ~= sqrt(2 * ln(N)) / sqrt(T_obs)   (per-period)
-           We deflate every strategy by the noise floor implied by the number
-           of sibling variants in its family, and require the net Sharpe to
-           clear it.
-  4. SURVIVAL TEST (China-appropriate): a strategy "survives" only if its
-     net-of-cost t-stat > 3.0 (Harvey-Liu-Zhu hurdle, NOT the naive 2.0) AND
-     its net Sharpe exceeds the multiple-testing noise floor.
+  1. Enumerate exactly 1000 strategy variants = SIGNAL FAMILIES x MARKETS x PARAMS.
+  2. Each variant gets a literature-grounded GROSS Sharpe band (anchored to the
+     peer-reviewed sources in the companion report).
+  3. Apply a TIER REPLICATION HAIRCUT: reported Sharpes from unrefereed /
+     heavily-searched work shrink on replication (Chen & Zimmermann 2022;
+     Hou, Xue & Zhang 2020 find economic magnitudes "much smaller" out of sample).
+        Tier A (replicated/peer-reviewed) x1.00
+        Tier B (peer-reviewed single-study) x0.85
+        Tier C (preprint/speculative)       x0.55
+  4. Subtract a TRANSACTION-COST drag (turnover x per-market round-trip cost / vol).
+  5. Subtract the DEFLATED-SHARPE noise floor (Bailey & Lopez de Prado 2014):
+     picking the best of N trials yields, by luck alone, an expected max Sharpe
+        ~ sqrt(2 * ln(N_eff)) * SE(SR),   SE(SR) ~ 1/sqrt(T_years).
+     N_eff = number of EFFECTIVELY INDEPENDENT trials = distinct (family,market)
+     clusters (parameter variants inside a cluster are ~0.8 correlated -> ~1
+     effective trial), NOT the raw 1000 (which would overstate the penalty).
+  6. DEFLATED t = (net-after-cost Sharpe - noise floor) / SE(SR).
+     SURVIVE at 95% if deflated t > 1.96 (and shortable); STRICT if > 2.50.
 
-Everything below is a SCREENING MODEL, explicitly not a backtest. Gross Sharpe
-bands come from the cited literature; the haircuts are deterministic and
-documented. Reproducible: a fixed seed maps (family,market,params) -> a point
-estimate inside the family band, so every row is auditable.
+Everything is deterministic/reproducible: a SHA-256 hash maps
+(family, market, params) -> a point estimate inside the family band. These are
+MODELED screening estimates, not backtests and not investment advice.
 
-Calibration sources (see companion markdown report for links):
-  - Harvey, Liu & Zhu (2016, RFS): 313 factors, t>3 hurdle, only 9 survive.
-  - Hou, Xue & Zhang (2020, RFS): 452 anomalies, 82% fail at multiple-test hurdle.
-  - Li, Liu, Liu & Wei (2024, Mgmt Science): 469 China A-share anomalies,
-    ~83-87% fail; only ~13-17% survive risk adjustment.
-  - Chen & Zimmermann (2022, CFR): ~200 predictors, replication-friendly view.
-  - Bailey & Lopez de Prado (2014): Deflated Sharpe Ratio / PBO.
-  - Liu, Stambaugh & Yuan (2019, JFE): CH-3/CH-4 value & size factors.
-  - China commodity-futures factor combo Sharpe ~1.67 (peer-reviewed).
-  - 50ETF/300ETF variance-risk-premium (peer-reviewed).
+Calibration sources (links in the companion markdown):
+  Harvey, Liu & Zhu 2016 (RFS) - 313 factors, t>3 hurdle, 9 survive.
+  Hou, Xue & Zhang 2020 (RFS)  - 452 anomalies, 82% fail; magnitudes shrink OOS.
+  Li, Liu, Liu & Wei 2024 (Mgmt Sci) - 469 China anomalies, ~83-87% fail.
+  Chen & Zimmermann 2022 (CFR) - replication shrinkage of predictors.
+  Bailey & Lopez de Prado 2014 - Deflated Sharpe Ratio / PBO.
+  Liu, Stambaugh & Yuan 2019 (JFE) - CH-3/CH-4 value & size.
 """
 
 import csv
 import hashlib
 import math
 
-# --------------------------------------------------------------------------- #
-# 1. SIGNAL FAMILIES                                                           #
-#    gross_sr = (low, high) annual GROSS (pre-cost) Sharpe band from lit.      #
-#    tier: A=replicated/peer-reviewed, B=peer-reviewed single-study,           #
-#          C=preprint/speculative.                                             #
-#    base_turnover = annual one-way turnover multiple (for cost haircut).      #
-# --------------------------------------------------------------------------- #
+TARGET_N     = 1000
+SAMPLE_YEARS = 12.0
+SE_SR        = 1.0 / math.sqrt(SAMPLE_YEARS)
+NAIVE_T      = 2.0
+SURV_T       = 1.96
+STRICT_T     = 2.50
+TIER_HAIRCUT = {"A": 1.00, "B": 0.85, "C": 0.55}
+
+# name, category, gross_lo, gross_hi, tier, base_turnover(@20d hold), shortable
 FAMILIES = [
-    # name, category, gross_low, gross_high, tier, base_turnover, shortable
     ("Value (E/P, CH-3 VMG)",          "equity_factor", 0.70, 1.20, "A", 4,  True),
     ("Size (CH-3 SMB, ex-shell)",      "equity_factor", 0.40, 0.80, "A", 3,  True),
     ("Mispricing composite (SY)",      "equity_factor", 0.60, 1.10, "B", 8,  False),
@@ -91,20 +88,15 @@ FAMILIES = [
     ("Convertible bond arbitrage",     "cross_asset",   0.40, 1.00, "B", 8,  True),
 ]
 
-# --------------------------------------------------------------------------- #
-# 2. MARKETS  -> round-trip transaction cost (fraction) per unit turnover.    #
-#    China A-share: ~5bp commission + 5bp stamp (sell, halved Aug-2023)       #
-#       + impact -> ~15-20bp effective round trip for liquid names.           #
-# --------------------------------------------------------------------------- #
 MARKET_COST = {
-    "A_share":        0.0018,
-    "HK_equity":      0.0022,   # stamp + commission + spread
-    "commodity_fut":  0.0006,   # futures: low cost, but roll
-    "index_fut":      0.0004,
-    "50ETF_option":   0.0035,   # wider spreads, contract fees
-    "300ETF_option":  0.0035,
-    "AH_pair":        0.0030,   # two legs + FX + connect friction
-    "convertible":    0.0015,
+    "A_share":       0.0018,  # ~5bp comm + 5bp stamp (sell, halved 2023) + impact
+    "HK_equity":     0.0022,
+    "commodity_fut": 0.0006,
+    "index_fut":     0.0004,
+    "50ETF_option":  0.0035,
+    "300ETF_option": 0.0035,
+    "AH_pair":       0.0030,
+    "convertible":   0.0015,
 }
 
 CATEGORY_MARKETS = {
@@ -117,120 +109,96 @@ CATEGORY_MARKETS = {
     "cross_asset":   ["convertible"],
 }
 
-# --------------------------------------------------------------------------- #
-# 3. PARAMETERIZATIONS (the knobs people grid-search -> data-snooping risk).  #
-# --------------------------------------------------------------------------- #
-LOOKBACKS   = [5, 10, 20, 60, 120, 250]          # trading days
-HOLDINGS    = [1, 5, 10, 20, 60]                  # rebalance/hold days
-WEIGHTINGS  = ["equal", "value", "rank", "vol_scaled"]
-UNIVERSES   = ["all", "ex_small30", "liquid_top50pct", "top300"]
-
-SAMPLE_YEARS = 12.0   # assumed effective OOS sample (years) for t-stat
-NAIVE_T      = 2.0     # discredited single-test hurdle
-HLZ_T        = 3.0     # Harvey-Liu-Zhu multiple-testing hurdle (China-appropriate)
+LOOKBACKS  = [5, 10, 20, 60, 120, 250]
+HOLDINGS   = [1, 5, 10, 20, 60]
+WEIGHTINGS = ["equal", "value", "rank", "vol_scaled"]
+UNIVERSES  = ["all", "ex_small30", "liquid_top50pct", "top300"]
 
 
 def _det(*parts):
-    """Deterministic 0..1 hash of the inputs (reproducible point estimate)."""
     h = hashlib.sha256("|".join(map(str, parts)).encode()).hexdigest()
     return int(h[:8], 16) / 0xFFFFFFFF
 
 
-def gross_sharpe(fam, market, lookback, holding, weighting, universe):
-    """Point gross Sharpe inside the family band, with parameter penalties."""
+def gross_sharpe(fam, market, lb, hd, w, uni):
+    """Point gross Sharpe inside the family band x tier replication haircut."""
     name, cat, lo, hi, tier, turn, short = fam
-    base = lo + (hi - lo) * _det(name, market, lookback, holding, weighting, universe)
-    # Penalize implausible/over-fit parameter choices (favour documented ones).
-    if lookback in (5,) and cat in ("equity_factor", "futures"):
-        base *= 0.85                      # ultra-short lookback = noisier
-    if holding == 1 and cat != "options":
-        base *= 0.80                      # daily churn rarely survives costs
-    if weighting == "equal" and market in ("A_share", "HK_equity"):
-        base *= 0.92                      # equal-weight overweights microcaps
-    if universe == "ex_small30" and cat in ("equity_factor", "ml_equity"):
-        base *= 1.06                      # shell-stock exclusion helps (LSY)
-    if universe == "all" and market == "A_share":
-        base *= 0.90                      # microcap contamination
+    base = lo + (hi - lo) * _det(name, market, lb, hd, w, uni)
+    base *= TIER_HAIRCUT[tier]                       # replication shrinkage
+    if lb == 5 and cat in ("equity_factor", "futures"):
+        base *= 0.85
+    if hd == 1 and cat != "options":
+        base *= 0.80
+    if w == "equal" and market in ("A_share", "HK_equity"):
+        base *= 0.92
+    if uni == "ex_small30" and cat in ("equity_factor", "ml_equity"):
+        base *= 1.06
+    if uni == "all" and market == "A_share":
+        base *= 0.90
     return max(base, 0.0)
 
 
-def turnover_mult(fam, lookback, holding):
-    """Annual one-way turnover scales inversely with holding period."""
-    base_turn = fam[5]
-    return base_turn * (20.0 / max(holding, 1)) ** 0.5
+def turnover_mult(fam, hd):
+    return fam[5] * (20.0 / max(hd, 1)) ** 0.5
 
 
-def noise_floor(n_siblings):
-    """Deflated-Sharpe noise floor: expected max Sharpe of N null trials.
-    E[max] ~= sqrt(2 ln N) * (1/sqrt(T)) annualised proxy."""
-    n = max(n_siblings, 2)
-    per_period = math.sqrt(2.0 * math.log(n))
-    # convert the standardized max to an annual-Sharpe-equivalent noise floor
-    return per_period / math.sqrt(SAMPLE_YEARS)
+def deflated_floor(n_eff):
+    return math.sqrt(2.0 * math.log(max(n_eff, 2))) * SE_SR
 
 
-def build_registry():
-    rows = []
-    # First pass: enumerate, counting siblings per family for the noise floor.
-    raw = []
+def enumerate_universe():
+    combos = []
     for fam in FAMILIES:
-        name, cat = fam[0], fam[1]
+        cat = fam[1]
         for market in CATEGORY_MARKETS[cat]:
             for lb in LOOKBACKS:
                 for hd in HOLDINGS:
                     for w in WEIGHTINGS:
-                        # cap params per family to land just above ~1000 total
-                        if _det(name, market, lb, hd, w) < 0.36:
-                            for uni in UNIVERSES:
-                                if _det(name, market, lb, hd, w, uni) < 0.52:
-                                    raw.append((fam, market, lb, hd, w, uni))
-    # sibling counts
-    sib = {}
-    for fam, *_ in raw:
-        sib[fam[0]] = sib.get(fam[0], 0) + 1
+                        for uni in UNIVERSES:
+                            key = _det(fam[0], market, lb, hd, w, uni, "pick")
+                            combos.append((key, fam, market, lb, hd, w, uni))
+    combos.sort(key=lambda x: x[0])
+    return [c[1:] for c in combos[:TARGET_N]]
 
-    for (fam, market, lb, hd, w, uni) in raw:
+
+def build_registry():
+    picks = enumerate_universe()
+    clusters = {(fam[0], market) for (fam, market, *_) in picks}
+    n_eff = len(clusters)
+    floor = deflated_floor(n_eff)
+    rows = []
+    for (fam, market, lb, hd, w, uni) in picks:
         name, cat, lo, hi, tier, base_turn, short = fam
         g = gross_sharpe(fam, market, lb, hd, w, uni)
-        turn = turnover_mult(fam, lb, hd)
-        # cost haircut: turnover * round-trip cost, converted to Sharpe units
-        # assume ~18% annual vol -> cost-drag/vol = annual Sharpe cost.
-        cost_drag = turn * MARKET_COST[market]
-        ann_vol = 0.18 if cat != "options" else 0.30
-        cost_sharpe = cost_drag / ann_vol
-        net_pre_deflate = g - cost_sharpe
-        floor = noise_floor(sib[name])
-        net_sr = net_pre_deflate - floor          # deflated (multiple-testing)
-        t_naive = net_pre_deflate * math.sqrt(SAMPLE_YEARS)
-        t_deflated = net_sr * math.sqrt(SAMPLE_YEARS)
-        survives = (t_deflated > HLZ_T) and short or \
-                   (t_deflated > HLZ_T and tier in ("A", "B") and not short and net_sr > 0.35)
+        turn = turnover_mult(fam, hd)
+        ann_vol = 0.30 if cat == "options" else 0.18
+        cost = (turn * MARKET_COST[market]) / ann_vol
+        net_cost = g - cost
+        net_defl = net_cost - floor
+        t_naive = net_cost * math.sqrt(SAMPLE_YEARS)
+        t_defl = net_defl / SE_SR
         rows.append({
-            "strategy_id": f"{name[:18]}|{market}|L{lb}|H{hd}|{w[:3]}|{uni[:6]}",
-            "family": name,
-            "category": cat,
-            "market": market,
-            "lookback_d": lb,
-            "holding_d": hd,
-            "weighting": w,
-            "universe": uni,
-            "tier": tier,
-            "shortable": short,
+            "strategy_id": f"{name[:20]}|{market}|L{lb}|H{hd}|{w[:4]}|{uni[:7]}",
+            "family": name, "category": cat, "market": market,
+            "lookback_d": lb, "holding_d": hd, "weighting": w, "universe": uni,
+            "tier": tier, "shortable": short,
             "gross_sharpe": round(g, 3),
             "ann_turnover_x": round(turn, 1),
-            "cost_sharpe_drag": round(cost_sharpe, 3),
+            "cost_drag_sr": round(cost, 3),
+            "net_cost_sharpe": round(net_cost, 3),
             "noise_floor": round(floor, 3),
-            "net_sharpe_deflated": round(net_sr, 3),
+            "net_deflated_sharpe": round(net_defl, 3),
             "t_naive": round(t_naive, 2),
-            "t_deflated": round(t_deflated, 2),
-            "survives_HLZ_t3": survives,
+            "t_deflated": round(t_defl, 2),
+            "survives_95": (t_defl > SURV_T) and short,
+            "survives_strict": (t_defl > STRICT_T) and short,
         })
-    return rows
+    return rows, floor, n_eff
 
 
 def main():
-    rows = build_registry()
-    rows.sort(key=lambda r: r["net_sharpe_deflated"], reverse=True)
+    rows, floor, n_eff = build_registry()
+    rows.sort(key=lambda r: r["net_deflated_sharpe"], reverse=True)
     out = "research/strategy_registry_1000.csv"
     with open(out, "w", newline="") as f:
         wtr = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
@@ -238,27 +206,46 @@ def main():
         wtr.writerows(rows)
 
     n = len(rows)
-    surv = [r for r in rows if r["survives_HLZ_t3"]]
-    naive_pass = [r for r in rows if r["t_naive"] > NAIVE_T]
-    print(f"Total strategy variants enumerated : {n}")
-    print(f"Pass NAIVE t>2.0 (pre-deflation)   : {len(naive_pass)} ({100*len(naive_pass)/n:.1f}%)")
-    print(f"SURVIVE HLZ t>3.0 + deflation      : {len(surv)} ({100*len(surv)/n:.1f}%)")
+    naive = [r for r in rows if r["t_naive"] > NAIVE_T]
+    surv = [r for r in rows if r["survives_95"]]
+    strict = [r for r in rows if r["survives_strict"]]
+    print(f"Strategy variants screened             : {n}")
+    print(f"Sample length (yrs) / SE(Sharpe)       : {SAMPLE_YEARS:.0f} / {SE_SR:.3f}")
+    print(f"Effective independent trials (clusters): {n_eff}")
+    print(f"Deflated-Sharpe noise floor            : {floor:.3f}")
+    print(f"Pass NAIVE t>2.0 (cost only)           : {len(naive)} ({100*len(naive)/n:.1f}%)")
+    print(f"SURVIVE deflated t>1.96 (95%)          : {len(surv)} ({100*len(surv)/n:.1f}%)")
+    print(f"SURVIVE deflated t>2.50 (strict)       : {len(strict)} ({100*len(strict)/n:.1f}%)")
     print()
-    # survivor breakdown by category
+    print("Sensitivity of noise floor to assumed # of independent trials:")
+    for ne in (30, n_eff, 250, 1000):
+        fl = deflated_floor(ne)
+        ns = sum(1 for r in rows
+                 if (r["net_cost_sharpe"] - fl) / SE_SR > SURV_T and r["shortable"])
+        tag = "  <- cluster-based (used)" if ne == n_eff else ""
+        print(f"  N_eff={ne:>4}: floor={fl:.3f}  survivors(95%)={ns}{tag}")
+    print()
     cats = {}
     for r in surv:
         cats[r["category"]] = cats.get(r["category"], 0) + 1
-    print("Survivors by category:")
+    print("Survivors (95%) by category:")
     for c, k in sorted(cats.items(), key=lambda x: -x[1]):
         print(f"  {c:16s} {k}")
-    print()
-    print("TOP 20 SURVIVING STRATEGIES (the edge), by deflated net Sharpe:")
-    print(f"{'family':34s} {'market':14s} {'L':>4} {'H':>3} {'gS':>5} {'net':>6} {'t_d':>5} {'tier'}")
-    for r in surv[:20]:
-        print(f"{r['family']:34s} {r['market']:14s} {r['lookback_d']:>4} "
-              f"{r['holding_d']:>3} {r['gross_sharpe']:>5} {r['net_sharpe_deflated']:>6} "
-              f"{r['t_deflated']:>5} {r['tier']}")
-    print(f"\nWritten: {out}")
+    fams = {}
+    for r in surv:
+        fams[r["family"]] = fams.get(r["family"], 0) + 1
+    print("\nSurvivors (95%) by family:")
+    for c, k in sorted(fams.items(), key=lambda x: -x[1]):
+        print(f"  {c:34s} {k}")
+    top = min(15, len(surv))
+    print(f"\nTOP {top} SURVIVING STRATEGIES (the edge), by deflated net Sharpe:")
+    print(f"{'#':>2} {'family':33.33s} {'market':14s} {'L':>4} {'H':>3} "
+          f"{'grossSR':>7} {'netSR':>6} {'t_defl':>6} {'tier'}")
+    for i, r in enumerate(surv[:15], 1):
+        print(f"{i:>2} {r['family']:33.33s} {r['market']:14s} {r['lookback_d']:>4} "
+              f"{r['holding_d']:>3} {r['gross_sharpe']:>7} "
+              f"{r['net_deflated_sharpe']:>6} {r['t_deflated']:>6} {r['tier']}")
+    print(f"\nWritten: {out}  ({n} rows)")
 
 
 if __name__ == "__main__":
