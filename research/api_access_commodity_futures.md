@@ -102,6 +102,27 @@ Two legal routes for non-mainland investors:
 
 ---
 
+## 6b. Your path — mainland resident/entity (full access) ✅
+
+You're in the best case: a domestic futures account gives you a **free CTP login and the full ~60-contract universe** — the entire combo cross-section is tradable, no QFI/OI restriction, no contract scoping needed.
+
+**Concrete checklist:**
+1. **Open a domestic futures account** at a mainstream Chinese broker with a solid CTP front and low commissions (e.g. 中信期货 / CITIC, 国泰君安期货, 永安期货, 银河期货, 华泰期货). Ask specifically for: **CTP API access enabled**, commission close to exchange-minimum + small markup, and a **fast/colocated front** if you'll scale.
+   - Requires China ID/entity + bank account; for the *combo's* speculative contracts, complete the **适当性 (investor-suitability) test** and any per-exchange trading-permission unlocks (e.g. iron ore, certain CZCE/SHFE products need a one-time qualification).
+2. **Get credentials:** broker gives you CTP broker-ID, front address(es), investor-ID, password.
+3. **Develop now (no live account needed yet):** `pip install tqsdk akshare`, build signals on free tick/minute history.
+4. **Paper trade:** tqsdk sim account or SimNow → full strategy loop incl. rolls.
+5. **Go live:** drop your broker's live CTP login into tqsdk/vn.py (just credentials + server address). Start with 1 contract, tiny size, to validate fills/slippage vs. backtest.
+6. **Capacity test** at 1×/3×/5× target AUM before scaling (per the deep dive).
+
+**Two China-specific gotchas to plan for:**
+- **Per-exchange trading permissions / suitability:** some combo contracts (iron ore, crude, stock-index-adjacent, certain options) require one-time qualification before CTP will accept orders on them. Clear these up front so backtested contracts are actually executable.
+- **Position limits & intraday-vs-overnight margins:** speculative position caps and night-session margin changes can bind the combo's sizing; model them in the capacity test.
+
+**Recommended stack for you:** `tqsdk` (data + research + sim) → live via your broker's **CTP** front → graduate to **vn.py** if you run the combo + CH-4 long-short + options VRP as a multi-strategy book.
+
+---
+
 ## 7. Sources
 - openctp — [GitHub](https://github.com/openctp/openctp) · [openctp.cn](http://www.openctp.cn/)
 - tqsdk — [PyPI](https://pypi.org/project/tqsdk/) · [GitHub](https://github.com/shinnytech/tqsdk-python)
