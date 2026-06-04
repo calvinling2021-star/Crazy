@@ -7,7 +7,7 @@
 > rise of vibe coders.*
 
 This doc locks that ICP and pricing. It is consistent with — not a replacement for — the
-positioning in [`06`](./06-positioning-debate.md): the Capital Trust Center now has a
+positioning in [`06`](./06-positioning-debate.md): the Vibe Coder Operation Platform now has a
 **top-of-funnel land motion (vibe coders, day one)** and a **monetization motion (capital
 events, later)**. They are one funnel.
 

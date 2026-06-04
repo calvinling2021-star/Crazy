@@ -2,7 +2,7 @@
 
 ## The core idea: one spine, many generators
 
-Every document IPO OS produces — board pack, audit workpapers, pitch deck, S-1,
+Every document Vibe Coder Operation Platform produces — board pack, audit workpapers, pitch deck, S-1,
 legal stack — is generated from **one canonical, verified data graph: the Revenue
 & Corporate Spine.** Humans review the *spine and the exceptions once*; the
 documents are then mechanically consistent with each other and with reality.

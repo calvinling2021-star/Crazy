@@ -1,7 +1,7 @@
 # 03 — Operation Plan
 
 > **⚠️ Positioning update (per [`06`](./06-positioning-debate.md)).** This plan predates the
-> repositioning to a neutral **Capital Trust Center**. Two corrections to apply as you read:
+> repositioning to a neutral **Vibe Coder Operation Platform**. Two corrections to apply as you read:
 > 1. **Entry beachhead is the lending/borrower rail**, not broad Tier-1 SaaS — that's where
 >    a capital provider will *refuse to fund without verified data* (the real forcing
 >    function). Land lenders first (they pay), expand to PE/M&A diligence, then readiness,
@@ -55,7 +55,7 @@ Goal: make it indispensable; turn on revenue.
    "always audit-ready" guarantee. Price to be a no-brainer.
 3. **A7 Growth** loops: activation nudges (connect every rail for 100% verified
    revenue), free→paid triggers (board meeting / raising soon), churn saves.
-4. **The "IPO OS verified" badge** for decks/data rooms — start building the
+4. **The "Vibe Coder Operation Platform verified" badge** for decks/data rooms — start building the
    legitimacy network effect.
 
 Exit criteria: healthy free→paid conversion, net revenue retention > 100%, a roster of
@@ -90,7 +90,7 @@ with auditor and attorney review hours dramatically below market.
 
 - **Free verified-revenue dashboard is the top of funnel.** Founders connect rails to
   see their own truth; you gain their data and the relationship. (Self-serve, viral.)
-- **The badge as social proof.** "IPO OS verified" on decks/data rooms makes *not*
+- **The badge as social proof.** "Vibe Coder Operation Platform verified" on decks/data rooms makes *not*
   using it look like a red flag to investors → pull, not push.
 - **Aspirational ladder.** Public readiness score + "path to the next level" makes it a
   status product, not just a utility. Founders share their score.
@@ -121,8 +121,8 @@ with auditor and attorney review hours dramatically below market.
 |------|------------|
 | **Hallucinated financials in audit/S-1** (existential) | "No fact without provenance" guardrail; A8 P0 on hallucinations; humans sign. Track unsourced-fact rate to zero. |
 | **You can't remove the auditor/attorney of record** | Don't try. Model = reduce them to review-and-sign; own the *preparer* layer. Partner panels for the *attestor/filer* layer. |
-| **Auditor independence rules** | The signing audit firm must be independent of IPO OS — use a partner panel, don't employ the signer. |
-| **Securities-law liability** | Counsel owns filings; IPO OS is a drafting + diligence accelerator, clearly positioned as such. |
+| **Auditor independence rules** | The signing audit firm must be independent of Vibe Coder Operation Platform — use a partner panel, don't employ the signer. |
+| **Securities-law liability** | Counsel owns filings; Vibe Coder Operation Platform is a drafting + diligence accelerator, clearly positioned as such. |
 | **Platform/rail dependence** (your customers' and yours) | Multi-rail from day one; treat any single-rail concentration as a flagged risk in scoring and in the S-1. |
 | **Most users never IPO** | Fine — Tier 1 is a standalone business; the IPO Track is the halo, not the volume. |
 | **Data security / financial PII** | Read-only scoped revocable creds, tenant isolation, least privilege, immutable provenance log. |

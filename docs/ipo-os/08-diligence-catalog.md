@@ -2,7 +2,7 @@
 
 > A structured database of **184 distinct due-diligence items** that capital providers —
 > lenders, VCs, PE/growth, M&A acquirers, and (at the top) public-market/listing — request
-> from a startup. It is the machine-readable spine that lets the Capital Trust Center
+> from a startup. It is the machine-readable spine that lets the Vibe Coder Operation Platform
 > **auto-assemble the right checklist for any raise and auto-prepare each item** from the
 > connected data feeds and platform modules.
 

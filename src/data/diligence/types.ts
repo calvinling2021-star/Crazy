@@ -55,7 +55,7 @@ export type DataSource =
   | "founder_input" // must be supplied/confirmed by a human
   | "external_partner"; // independent auditor / attorney / 409A / KYC provider
 
-/** Which IPO-OS module/agent produces the item (links the catalog to the architecture). */
+/** Which Vibe-Coder-Operation-Platform module/agent produces the item (links the catalog to the architecture). */
 export type ProducedBy =
   | "revenue_truth" // A1
   | "audit_automation" // A2

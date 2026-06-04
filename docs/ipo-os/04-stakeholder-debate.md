@@ -1,6 +1,6 @@
 # 04 — The 10-Stakeholder Debate (Business-Model Validation)
 
-> A structured red-team of the IPO OS model, with ten personas arguing from real
+> A structured red-team of the Vibe Coder Operation Platform model, with ten personas arguing from real
 > evidence gathered in deep research (sources cited inline). The goal is not consensus
 > for its own sake — it is to find what **breaks**, what **holds**, and what the model
 > is **forced to change**. A consolidated verdict and the resulting pivots are at the end.
@@ -14,7 +14,7 @@
 | P3 | **Priya — securities attorney** | UPL, Rule 5.4, Section 11 liability |
 | P4 | **Tom — PCAOB audit partner** | Independence, preparer vs. attestor, completeness |
 | P5 | **Regulator — SEC division staff** | Disclosure integrity, Reg A+/EGC, AI in filings |
-| P6 | **Elena — VC** (invests in startups *and* would invest in IPO OS) | Demand, comps, willingness-to-pay |
+| P6 | **Elena — VC** (invests in startups *and* would invest in Vibe Coder Operation Platform) | Demand, comps, willingness-to-pay |
 | P7 | **Frank — institutional public-market investor** | Aftermarket, float, liquidity, small-cap reality |
 | P8 | **Hana — technical accountant / standard-setter lens** | ASC 606 vs IFRS 15, principal/agent |
 | P9 | **Short — skeptic / short-seller** | Trust, conflicts, margins, hallucinations |
@@ -45,7 +45,7 @@ are bespoke, high-stakes; the attorney must exercise real judgment, not rubber-s
 **P4 Tom (auditor):** Directionally I like it. Rail-traceable revenue gives me
 third-party payout reports + bank settlement for the *whole population*, not a sample —
 that collapses confirmations and existence testing. But independence is sacred: the
-**audit firm cannot audit work it prepared.** Keep IPO OS firmly on the *management/
+**audit firm cannot audit work it prepared.** Keep Vibe Coder Operation Platform firmly on the *management/
 preparer* side, and the client must formally take responsibility for the AI-prepped
 workpapers (the "suitable skill, knowledge and experience" requirement). And rails
 don't prove *completeness of the population of rails* — I still have to prove there's
@@ -58,7 +58,7 @@ non-PCAOB auditor allowed) and EGC scaled relief (2 yrs audited, no SOX 404(b)) 
 lower the bar for small issuers. But "lower bar" is not "no investor protection" — and
 AI-hallucinated disclosures in a registration statement are *our* problem and yours.
 
-**P6 Elena (VC):** As an investor in *IPO OS the company*, the comps are encouraging:
+**P6 Elena (VC):** As an investor in *Vibe Coder Operation Platform the company*, the comps are encouraging:
 Vanta went $0→$220M ARR in ~7 years selling "continuous audit-ready proof"; DataSnipper
 is a profitable $1B audit-automation unicorn; TrustMRR already verified $1B+ of revenue
 via read-only Stripe. The "verified revenue + data room" wedge is real and fundable.
@@ -69,7 +69,7 @@ secondaries for liquidity. [Sacra/Vanta; Carta data]
 **P7 Frank (institutional investor):** I'll say the quiet part loud. Micro-cap IPOs
 underperform (~-16% long-run CAR), trade on thin floats with no research, and lose
 sponsorship. Newsmax's 2025 Reg A+ direct listing spiked to $83 and collapsed to $23
-with no underwriter stabilization. If IPO OS pushes small AI startups onto public
+with no underwriter stabilization. If Vibe Coder Operation Platform pushes small AI startups onto public
 markets, you're manufacturing exactly the illiquid, retail-dumped listings regulators
 hate. [Loughran/Ritter; Newsmax]
 
@@ -120,7 +120,7 @@ companies *avoid* IPOs. The market has voted.
 direct listings has a poor track record — "so brokers could sell expensive shares." We
 would rather see well-prepared issuers than a volume machine for thin floats.
 
-**P10 Vera:** So the "IPO" in IPO OS is a *brand*, not a product line for most users.
+**P10 Vera:** So the "IPO" in Vibe Coder Operation Platform is a *brand*, not a product line for most users.
 
 **Resolution of Round 2:** The panel converges hard. **"Fast cheap IPOs for small AI
 startups" is the weakest part of the thesis.** The genuine, large, growing need is
@@ -133,7 +133,7 @@ the top of a ladder, not the product. → **Forced pivot #1.**
 ## Round 3 — Audit & legal: how much can the agents really own?
 
 **P4 Tom:** I'll sign faster if the workpapers are clean, but write this down: I review
-exceptions, I own the opinion, and the client — not IPO OS — takes responsibility for
+exceptions, I own the opinion, and the client — not Vibe Coder Operation Platform — takes responsibility for
 the prepared records. Build me a 100%-population reconciliation (payout → bank) and an
 honest exception queue and you cut my hours meaningfully on *existence and cash*. You
 do **not** cut my work on completeness-of-population, cutoff/timing, gross-vs-net, and
@@ -145,7 +145,7 @@ stream where the conclusion is shaky (ads especially) to a human. Don't let the 
 silently pick gross vs net.
 
 **P3 Priya:** On legal — drafting is fine, *signing and advising* is the attorney's.
-And restructure economics: IPO OS charges a **software/prep fee**, the attorney bills
+And restructure economics: Vibe Coder Operation Platform charges a **software/prep fee**, the attorney bills
 the client **directly**. If you ever want to share legal revenue or own the legal arm,
 domicile it as an **Arizona ABS.** Otherwise Rule 5.4 ends you.
 
@@ -198,7 +198,7 @@ layer (which the *customer* pays the partner for, not you). That keeps your gros
 SaaS-like and your liability bounded.
 
 **Resolution of Round 4:** Two non-negotiables. **(a) Hard data-firewall / neutrality:**
-IPO OS is verification infrastructure, contractually "we never trade on your data";
+Vibe Coder Operation Platform is verification infrastructure, contractually "we never trade on your data";
 any liquidity marketplace is a separate, opt-in, walled product or a partner's, never
 the core tenant monetizing customer data. **(b) Keep SaaS margins:** agents do the
 work; humans are the *partner* sign-off the customer pays for. → **Forced pivots #4 and

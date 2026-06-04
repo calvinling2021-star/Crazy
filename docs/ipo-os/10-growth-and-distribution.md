@@ -45,7 +45,7 @@ Two distinct motions — do both; they compound:
 MCP is now the neutral standard (donated to the Linux Foundation's Agentic AI Foundation,
 Dec 2025; ~97M monthly SDK downloads; 10k+ servers; first-class in Claude, ChatGPT, Cursor,
 Gemini, Copilot). [Anthropic; TechCrunch; Linux Foundation]
-- **Publish an IPO-OS / Capital Trust Center MCP server** exposing read-only, safe actions:
+- **Publish an Vibe-Coder-Operation-Platform / Vibe Coder Operation Platform MCP server** exposing read-only, safe actions:
   "check my capital readiness," "what am I missing for a Series A," "what's my verified
   ARR," "which lenders do I qualify for," "file/track my 83(b)." Then **list it in Claude's
   Connectors Directory** (200+ integrations; Stripe is already there; Pro/Max/Team can add
@@ -86,7 +86,7 @@ new project scaffolds with "capital readiness" wired in from the first commit.
 5. **Platform marketplaces/templates** (§2c).
 
 ## 4. Viral loops (engineer these in)
-- **Verified badge** (TrustMRR/SOC-2 pattern): users embed "Capital-Trust-Center verified
+- **Verified badge** (TrustMRR/SOC-2 pattern): users embed "Vibe-Coder-Operation-Platform verified
   $X ARR" on landing pages / build-in-public posts → free distribution + a pull signal that
   becomes a red flag to *lack* (works only if **investors/lenders come to expect it** — so
   seed the demand side, §5).

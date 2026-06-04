@@ -7,7 +7,7 @@ This is the right expansion. The two records that **kill fundraises** are exactl
 "cap tables that don't reconcile to board consents" and "contradictory financials" — and
 spend is the largest unverified line in most startups' books. Building both **on the same
 verified, provenance-tracked spine** as Revenue Truth (A1) is what turns them from
-liabilities into the Capital Trust Center's strongest proof. Carta and Ramp/Brex own these
+liabilities into the Vibe Coder Operation Platform's strongest proof. Carta and Ramp/Brex own these
 *separately*; nobody owns them **reconciled into one continuously auditable record** — that
 cross-domain tie is the defensible white space (see `06`).
 
@@ -146,7 +146,7 @@ record.
 
 ---
 
-## How both modules reinforce the Capital Trust Center
+## How both modules reinforce the Vibe Coder Operation Platform
 
 | Capital event | What the auditable cap table + spend deliver |
 |---|---|

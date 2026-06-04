@@ -1,5 +1,10 @@
 # 06 — Positioning & Entry-Point Debate (Trust Center for Capital-Raising)
 
+> 📌 **Historical doc — kept in original wording.** This debate is *about choosing the
+> name/positioning*, so it deliberately retains the prior working names (**IPO OS**,
+> **Capital Trust Center**). The product is now **Vibe Coder Operation Platform (VCOP)** —
+> the "Capital Trust Center" concept here is what became VCOP. See the README lineage note.
+
 > A second 10-stakeholder debate, focused on **what to call it, where to enter, and how
 > far to go.** The brief from the founder: *don't position as "IPO OS" — position as a
 > **Trust Center for raising capital** from VC, PE, banks, listing, and lenders; model it

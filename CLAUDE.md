@@ -10,8 +10,9 @@ day one**, and gets them **instant, paperwork-free growth debt** — "the key is
 fund." Distributed agent-natively (MCP). Equity/IPO and a full social network are **deferred/cut**
 (see `docs/ipo-os/19`). The repo also contains an unrelated legacy Next.js site ("Molecule
 Capital") + a Python deal-sourcing `pipeline/` — leave those unless asked.
-Name lineage: *IPO OS → Capital Trust Center → **Vibe Coder Operation Platform (VCOP)***; older
-names still appear in code/docs and mean the same product.
+Name lineage: *formerly **IPO OS**, then **Capital Trust Center**, now **Vibe Coder Operation
+Platform (VCOP)***; those older names still appear in the historical debate docs (esp. `06`) and
+mean the same product.
 
 ## Locked decisions (docs/ipo-os/17–19)
 1. Narrow to the **debt wedge** (verified spine → instant paperwork-free growth debt).

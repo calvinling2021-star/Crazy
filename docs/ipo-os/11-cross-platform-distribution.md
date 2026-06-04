@@ -20,7 +20,7 @@ config format differs. Stripe and Supabase both ship a single MCP server consume
 these. **Build once, wrap many.**
 
 ### The tool/skill surface to expose (read-only, safe-by-default)
-The Capital Trust Center MCP server should expose the builder's whole capital-readiness
+The Vibe Coder Operation Platform MCP server should expose the builder's whole capital-readiness
 journey as callable tools — so a founder *inside Claude/Cursor/ChatGPT, mid-build* can do
 this without leaving the agent:
 

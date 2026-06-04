@@ -1,9 +1,9 @@
 # 00 — Business Model Reshape
 
-> **⚠️ Positioning update (supersedes the "IPO OS" framing below).** After the
+> **⚠️ Positioning update (supersedes the "Vibe Coder Operation Platform" framing below).** After the
 > validation debates in [`04`](./04-stakeholder-debate.md) and
-> [`06`](./06-positioning-debate.md), the product is repositioned from **"IPO OS"** to a
-> neutral **Capital Trust Center**: the AI-native finance + legal back office that keeps
+> [`06`](./06-positioning-debate.md), the product is repositioned from **"Vibe Coder Operation Platform"** to a
+> neutral **Vibe Coder Operation Platform**: the AI-native finance + legal back office that keeps
 > an AI startup *continuously, verifiably capital-ready* so it raises faster and cheaper
 > from **anyone** (lenders, PE, banks, and — at the top of the ladder — public markets).
 > Key changes to read this doc through:
@@ -15,7 +15,7 @@
 > - **Hard neutrality firewall** — subscription/access fees only, never a deal counterparty.
 >
 > The sections below remain valid on the *mechanics* (traceable revenue, the spine,
-> agents); mentally substitute "Capital Trust Center" for "IPO OS" and "Capital-Readiness
+> agents); mentally substitute "Vibe Coder Operation Platform" for "Vibe Coder Operation Platform" and "Capital-Readiness
 > Ladder" for "IPO Track" throughout. The definitive positioning is in `06`.
 
 ## 1. The strategic insight you already have (made explicit)
@@ -28,7 +28,7 @@ There is a large, fast-growing population of AI startups that:
   firm will take them cheaply, no law firm will draft an S-1 on spec, and the
   founders have never seen the inside of the IPO machine.
 
-They are *stuck below the line*. IPO OS is the elevator. The wedge is not "we help
+They are *stuck below the line*. Vibe Coder Operation Platform is the elevator. The wedge is not "we help
 you IPO" (too rare, too far away for most). The wedge is: **"plug in your Stripe /
 App Store / Google / Meta accounts and we run your financial back office so you're
 permanently audit-ready, raise-ready, and — if you're good enough — IPO-ready."**
@@ -97,7 +97,7 @@ to these rails"** is not a limitation — it is the moat:
 
 ### Tier 1 — the must-have (land)
 Goal: **every** qualifying AI startup feels it would be irresponsible *not* to run
-on IPO OS. Sell it as the financial operating system, not as "IPO software":
+on Vibe Coder Operation Platform. Sell it as the financial operating system, not as "IPO software":
 
 - **Revenue Truth** — one live, reconciled view of all rail revenue, MRR/ARR,
   refunds, chargebacks, net revenue, cohort retention — verified, not founder-typed.
@@ -111,7 +111,7 @@ Make it cheap and sticky. This is the wedge that gets you *all* the AI startups.
 ### Tier 2 — the IPO track (expand)
 For companies the scoring agent ranks as ready: the agents generate the audit
 workpapers, S-1, pitch deck, and legal documents; the human auditor and attorney
-**review and sign**. This is where IPO OS captures banker/lawyer-scale value at
+**review and sign**. This is where Vibe Coder Operation Platform captures banker/lawyer-scale value at
 software cost.
 
 ## 4. Why founders will feel it's a *must*
@@ -122,7 +122,7 @@ software cost.
   a verified revenue truth link instead of a hand-built spreadsheet.
 - **Gives them an aspirational ladder** — a public IPO-readiness score and a visible
   path "to the next level" that no competitor offers.
-- **Network effect of legitimacy** — once the best startups wear the "IPO OS
+- **Network effect of legitimacy** — once the best startups wear the "Vibe Coder Operation Platform
   verified" badge, being *outside* the system looks like a red flag to investors.
 
 ## 5. Pricing shape (illustrative, tune later)
@@ -145,7 +145,7 @@ and makes the paid product obviously valuable.
 
 ## 6. The moat
 
-1. **The verified revenue spine** — once a company's truth lives in IPO OS,
+1. **The verified revenue spine** — once a company's truth lives in Vibe Coder Operation Platform,
    everything (audit, deck, S-1, board pack) is generated *consistently* from it,
    and ripping it out means losing audit-readiness.
 2. **The proprietary IPO-readiness dataset** — you see real, verified financials of
@@ -154,7 +154,7 @@ and makes the paid product obviously valuable.
 3. **Compounding self-improvement** — every auditor and attorney edit trains the
    generators (see Self-Improvement agent), so doc quality rises and human review
    time falls over time — widening the cost advantage.
-4. **Legitimacy network effect** — "IPO OS verified" becomes a trust signal.
+4. **Legitimacy network effect** — "Vibe Coder Operation Platform verified" becomes a trust signal.
 
 ## 7. Honest constraints (so the model survives contact with reality)
 
@@ -162,15 +162,15 @@ and makes the paid product obviously valuable.
   PCAOB independence rules require licensed, *independent* humans to sign. The model
   is *reduce them to review-and-sign*, not eliminate them — exactly your framing.
   Keep the AI on the *preparer* side, never the *independent attestor* side.
-- **The audit firm must be independent of IPO OS** to sign a public-company audit.
-  **Decision (locked): pure-partner panels** — IPO OS never employs the signing
+- **The audit firm must be independent of Vibe Coder Operation Platform** to sign a public-company audit.
+  **Decision (locked): pure-partner panels** — Vibe Coder Operation Platform never employs the signing
   auditor or attorney. The agents feed a panel of independent audit firms and law
   firms; the platform owns the *prep*, the panel owns the *opinion/filing*. This also
   keeps you off the hook for malpractice/independence liability and sidesteps the
   attorney fee-sharing problem (ABA Model Rule 5.4) — partners bill the client
-  directly; IPO OS charges a software/prep fee, not a cut of the legal fee.
+  directly; Vibe Coder Operation Platform charges a software/prep fee, not a cut of the legal fee.
 - **S-1 / securities work is the practice of law.** Attorneys must own final
-  filings. IPO OS is a drafting + diligence accelerator for the law firm, not a
+  filings. Vibe Coder Operation Platform is a drafting + diligence accelerator for the law firm, not a
   replacement — pitch it to founders *and* to the firms as leverage.
 - **Don't overpromise "automatic IPO."** Most Tier-1 users will never IPO and
   that's fine — Tier 1 is a great business on its own. The IPO track is the halo.

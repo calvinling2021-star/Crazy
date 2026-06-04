@@ -87,7 +87,7 @@ Reframe the product around *frictionlessness*, not access:
   the credit-bureau model) — they get safe volume; we get distribution and the trust standard.
 - **Become the accepted standard package.** The moat is many lenders standardizing on our
   verified-underwriting package + audit-based credit score (multi-acceptor standard, `06`/`12`).
-  Once a local bank trusts "Capital-Trust-Center-verified," not having it becomes the friction.
+  Once a local bank trusts "Vibe-Coder-Operation-Platform-verified," not having it becomes the friction.
 
 ## 6. Monetization (debt-first, clean)
 - **Lender-paid:** per-verified-lead / origination referral fees (permissible for debt) for

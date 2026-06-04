@@ -16,7 +16,7 @@ you out of the Pipe/hallucination trap.
 ## The prompt (copy from here)
 
 ```
-You are building "Revenue Truth," the core engine of IPO OS — a system that ingests an
+You are building "Revenue Truth," the core engine of Vibe Coder Operation Platform — a system that ingests an
 AI startup's revenue from read-only payment/payout rails and produces ONE verified,
 reconciled, ASC 606 / IFRS 15-aligned revenue ledger that an auditor or investor can
 trust without redoing the work.
