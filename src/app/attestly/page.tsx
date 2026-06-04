@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AttestlyWordmark, AttestlyMark } from "@/components/attestly/Logo";
 
 export const metadata: Metadata = {
-  title: "Attestly — Verified, not vibes.",
+  title: { absolute: "Attestly — Verified, not vibes." },
   description:
     "Connect your revenue read-only. Attestly keeps your financials verified and auditable, builds your credit from day one, and puts instant, paperwork-free growth capital one prompt away — inside Claude, Cursor, and Codex.",
 };

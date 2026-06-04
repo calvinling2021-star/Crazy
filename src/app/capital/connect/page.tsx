@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AttestlyWordmark } from "@/components/attestly/Logo";
 import { liveDataConfigured } from "@/lib/cdp";
 
-export const metadata: Metadata = { title: "Attestly — Connect read-only" };
+export const metadata: Metadata = { title: { absolute: "Attestly — Connect read-only" } };
 export const dynamic = "force-dynamic";
 
 const canSee = [
