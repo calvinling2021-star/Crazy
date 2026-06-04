@@ -4,7 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.moleculecapital.net"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.moleculecapital.net"),
   title: {
     default: "Molecule Capital | Healthcare & Biotech Investment",
     template: "%s | Molecule Capital",

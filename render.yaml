@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: attestly
+    runtime: node
+    plan: free
+    branch: claude/ipo-os-business-model-KKTms
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /attestly
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Public base URL of this deployment (used for OG / share-card image URLs).
+      # Set to your Render URL, e.g. https://attestly.onrender.com
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      # Optional: restricted, READ-ONLY Stripe key to switch from demo -> live verified data.
+      - key: STRIPE_SECRET_KEY
+        sync: false
