@@ -36,7 +36,7 @@ export default function AttestlyLanding() {
           one, and puts growth capital one prompt away — right inside Claude, Cursor, and Codex.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
-          <Link href="/capital" className="rounded-lg bg-[#3DD68C] px-5 py-2.5 text-sm font-semibold text-[#0B0F14]">
+          <Link href="/capital/connect" className="rounded-lg bg-[#3DD68C] px-5 py-2.5 text-sm font-semibold text-[#0B0F14]">
             Connect read-only
           </Link>
           <a href="#how" className="rounded-lg border border-[#232C38] px-5 py-2.5 text-sm text-[#9AA7B5]">

@@ -1,5 +1,6 @@
 import { getFounderStateAsync, listProviders } from "@/lib/cdp";
 import { FirmSelector } from "./FirmSelector";
+import { OfferCard } from "./OfferCard";
 import { AttestlyWordmark } from "@/components/attestly/Logo";
 
 export const dynamic = "force-dynamic";
@@ -90,19 +91,7 @@ export default async function CapitalPage() {
                   <p className="text-sm text-neutral-400">No pre-qualified offers yet — connect more revenue history.</p>
                 )}
                 {s.capital.offers.map((o, i) => (
-                  <div key={i} className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{o.lender}</span>
-                      <span className="text-lg font-bold text-emerald-300">{money(o.amount)}</span>
-                    </div>
-                    <p className="text-xs text-neutral-400">{o.product}</p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {(o.feePct * 100).toFixed(1)}% fee · {o.termMonths}mo · ~{money(o.estMonthlyRepayment)}/mo
-                    </p>
-                    <button className="mt-3 w-full rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-neutral-950">
-                      Accept — funds in 24h
-                    </button>
-                  </div>
+                  <OfferCard key={i} offer={o} />
                 ))}
               </div>
               <p className="mt-2 text-[11px] text-neutral-500">Indicative offers (mock aggregator). Final terms set by the partner lender.</p>
