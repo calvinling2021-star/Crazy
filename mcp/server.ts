@@ -72,7 +72,15 @@ server.tool(
   async () => wrap(listProviders())
 );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
-// eslint-disable-next-line no-console
-console.error("[attestly] MCP server running on stdio");
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  // eslint-disable-next-line no-console
+  console.error("[attestly] MCP server running on stdio");
+}
+
+main().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error("[attestly] failed to start:", err);
+  process.exit(1);
+});

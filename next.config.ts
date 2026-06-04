@@ -8,8 +8,13 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
+  // better-sqlite3 is a native Node module — keep it external to the server bundle.
+  // serverExternalPackages handles this under Turbopack (the Next 16 default).
+  serverExternalPackages: ["better-sqlite3"],
+  // Empty turbopack config silences the "webpack config + no turbopack config" build error;
+  // the webpack fallback below still applies for `next build --webpack`.
+  turbopack: {},
   webpack: (config) => {
-    // better-sqlite3 is a native Node module — keep it out of the webpack bundle
     config.externals.push({ "better-sqlite3": "commonjs better-sqlite3" });
     return config;
   },
