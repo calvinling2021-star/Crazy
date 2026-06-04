@@ -45,6 +45,9 @@ candidates faster and cheaper than any bank or law firm can.
 | [`08-diligence-catalog.md`](./08-diligence-catalog.md) | **Diligence catalog** — 184-item DB of what lenders/VC/PE/M&A request, tagged for auto-preparation (the automation backbone; data in `src/data/diligence/`) |
 | [`09-vibe-coder-gtm-and-pricing.md`](./09-vibe-coder-gtm-and-pricing.md) | **ICP + pricing** — target the millions of "vibe coders"/Claude builders; capital-provider directory + process tracker; tiered subscription now, commission at PE/IPO |
 | [`10-growth-and-distribution.md`](./10-growth-and-distribution.md) | **Growth** — day-one deadline-alert hook, agent-native distribution (MCP + Claude Connectors, GEO/AEO), viral loops, and linking to capital providers (debt-first; equity = broker-dealer caution) |
+| [`11-cross-platform-distribution.md`](./11-cross-platform-distribution.md) | **Built-in everywhere** — one MCP server reused across Claude/Codex/Gemini/Cursor + Stripe/Supabase/Vercel marketplaces; the Vercel/Supabase infra-as-distribution playbook |
+| [`12-capital-network-and-intros.md`](./12-capital-network-and-intros.md) | **Capital network** — continuous provider contact-data enrichment (reuses `pipeline/`) + premium warm-intro service with verified-data attach; two-sided monetization + broker-dealer guardrails |
+| [`13-social-platform.md`](./13-social-platform.md) | **Vibe-coder social platform** — community/feed/verified leaderboard as the growth, retention, and badge-demand engine; cold-start and anti-spam-to-investors cautions |
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate
