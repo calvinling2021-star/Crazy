@@ -18,4 +18,22 @@ console.log("  ready:", yc?.lines.filter((l) => l.status === "ready").length, "a
 const cap = assembleChecklist("capchase");
 console.log("Capchase checklist:", cap?.readinessPct + "% ready,", cap?.lines.length, "items");
 console.log("\nProvider count:", listProviders().length);
-console.log("SMOKE OK");
+
+// --- assertions (so `npm test` fails loudly in CI on regressions) ---
+const checks: Array<[string, boolean]> = [
+  ["credit score in 0..100", s.creditScore.score >= 0 && s.creditScore.score <= 100],
+  ["has credit factors", s.creditScore.factors.length >= 5],
+  ["metrics computed", s.metrics.mrr > 0 && s.metrics.arr === s.metrics.mrr * 12],
+  ["83(b) alert present", s.readiness.some((r) => r.id.startsWith("83b"))],
+  ["has instant offers", s.capital.offers.length > 0],
+  ["has qualifying providers", s.capital.qualifyingProviders.length > 0],
+  ["YC checklist resolves", !!yc && yc.lines.length > 0],
+  ["provider catalog loaded", listProviders().length >= 70],
+];
+const failed = checks.filter(([, ok]) => !ok);
+for (const [name, ok] of checks) console.log(`${ok ? "✓" : "✗"} ${name}`);
+if (failed.length) {
+  console.error(`\nSMOKE FAILED: ${failed.length} check(s)`);
+  process.exit(1);
+}
+console.log("\nSMOKE OK");
