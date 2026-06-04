@@ -26,19 +26,22 @@ Non-negotiables: deterministic numbers (never AI-guessed), human-signed where at
 absolute neutrality (never a deal counterparty), debt-referral/flat-fee legal lane.
 
 ## What's built (runnable, validated, deployable)
-**Status:** `npm install` ✓ · `npm run build` ✓ (TS clean, 11 routes) · `npm test` ✓ · `npm run mcp` boots ✓.
+**Status:** `npm install` ✓ · `npm run build` ✓ (TS clean, 14 routes) · `npm test` ✓ · `npm run mcp` boots ✓.
 - `src/lib/cdp/` — deterministic core: `spine.ts` (verified metrics), `creditScore.ts` (the moat
-  = Attestly Standing), `readiness.ts` (83(b)/BOI/cap-table alerts), `connectors.ts`
-  (`RailConnector` + live **read-only Stripe** + demo fallback), `aggregator.ts`
-  (`LendingAggregator` + `MockAggregator`), `capital.ts` (provider matching + alpha-moment
-  checklist), `demo.ts`, `index.ts` (sync + async `*Async` loaders).
-- `src/app/attestly/` — **landing page** (brand). `src/app/capital/` — **dashboard** (Standing,
-  Attestly Line offers w/ draw flow, deadline alerts, "name a firm"); `capital/connect/` —
-  read-only onboarding. `src/components/attestly/Logo.tsx` — brand marks.
-- `src/app/api/cdp/*` — JSON endpoints (state / checklist / providers).
-- `mcp/server.ts` — **Attestly MCP** (`npm run mcp`): get_credit_score, check_deadlines,
-  verify_revenue, match_capital, get_readiness_score, assemble_checklist, list_providers
-  (use live Stripe when `STRIPE_SECRET_KEY` set).
+  = Attestly Standing; + `FACTOR_GUIDANCE`/`BANDS`/`rankFactorsByOpportunity`), `readiness.ts`
+  (83(b)/BOI/cap-table alerts), `connectors.ts` (`RailConnector` + live **read-only Stripe** +
+  demo fallback), `aggregator.ts` (`LendingAggregator` + `MockAggregator`), `capital.ts`
+  (provider matching + alpha-moment checklist), `badge.ts` + `og.ts` (verified badge + share
+  card SVGs), `demo.ts`, `index.ts` (sync + async `*Async` loaders).
+- `src/app/attestly/` — **landing** (brand, OG share image). `src/app/capital/` — **dashboard**
+  (Standing, Attestly Line offers w/ draw flow, deadline alerts, "name a firm", Verified badge
+  embed); `capital/connect/` — read-only onboarding; `capital/standing/` — score detail +
+  how-to-improve. `src/components/attestly/Logo.tsx` — brand marks.
+- `src/app/api/cdp/*` — JSON endpoints (state / checklist / providers); `api/badge` + `api/og` —
+  embeddable verified-revenue badge + 1200×630 social share card (the growth loop).
+- `mcp/server.ts` — **Attestly MCP** (`npm run mcp`): get_credit_score, improve_standing,
+  check_deadlines, verify_revenue, match_capital, get_readiness_score, assemble_checklist,
+  list_providers (use live Stripe when `STRIPE_SECRET_KEY` set).
 - `src/data/diligence/` — 200-item `catalog.json` + 71-provider `providers.json` + `schema.sql` + loader.
 - `docs/ops/` — operational-readiness checklist + aggregator selection scorecard.
 
@@ -51,7 +54,7 @@ npm test         # assertion smoke of the core
 npm run mcp      # Attestly MCP server (stdio)
 ```
 Set a restricted, read-only `STRIPE_SECRET_KEY` in `.env` to switch the dashboard/MCP from demo
-to live verified data. Pages render at `/attestly`, `/capital`, `/capital/connect`.
+to live verified data. Pages: `/attestly`, `/capital`, `/capital/connect`, `/capital/standing`.
 
 ## Run
 ```bash
