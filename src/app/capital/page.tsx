@@ -1,6 +1,7 @@
 import { getFounderStateAsync, listProviders } from "@/lib/cdp";
 import { FirmSelector } from "./FirmSelector";
 import { OfferCard } from "./OfferCard";
+import { BadgeEmbed } from "./BadgeEmbed";
 import { AttestlyWordmark } from "@/components/attestly/Logo";
 
 export const dynamic = "force-dynamic";
@@ -125,6 +126,12 @@ export default async function CapitalPage() {
             Tell us who you&apos;re raising/borrowing from; we already have most of what they ask for.
           </p>
           <FirmSelector providers={providers} />
+        </section>
+
+        {/* Verified badge — the growth loop */}
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-neutral-300">Share your verified revenue</h2>
+          <BadgeEmbed />
         </section>
 
         {/* Qualifying providers */}
