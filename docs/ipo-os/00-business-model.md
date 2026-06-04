@@ -46,10 +46,19 @@ to these rails"** is not a limitation — it is the moat:
 
 ### ICP filter (who you let in)
 - B2B or B2C **AI software** company (SaaS, API, app, agent product).
-- ≥ ~80% of revenue through Stripe and/or Apple and/or Google and/or Meta.
+- ≥ ~80% of revenue through **traceable rails** — Stripe, Apple, Google, Meta are the
+  flagship four, and the platform supports **up to ~10 traceable channels** total
+  (e.g., add Shopify, PayPal, Paddle, Chargebee, AWS/Azure Marketplace, Amazon) as
+  long as each provides API-accessible, third-party-attested payout data. The
+  governing rule is *traceability*, not the specific brand: if we can pull a
+  reconciled, source-of-truth ledger read-only, the channel qualifies.
 - Read-only API/OAuth access grantable to all revenue + payout accounts.
 - (For the IPO track) trailing revenue, growth rate, and margin above a bar — see
   the IPO Scoring agent in `02`.
+
+> **Decision (locked):** support **up to 10 traceable channels**. Resist any channel
+> whose revenue can't be reconciled to a third-party payout report + bank deposit —
+> non-traceable revenue breaks the audit economics that are the whole moat.
 
 ## 3. The two-tier funnel
 
@@ -111,6 +120,11 @@ The free tier exists to **vacuum up the entire AI-startup population and their
 revenue data**, which both fuels the scoring model (who are the best IPO targets?)
 and makes the paid product obviously valuable.
 
+> **Decision (locked):** run **both pricing models in parallel** — flat per-seat SaaS
+> *and* revenue-banded — and let the market sort them. Tier 1 is likely best as a
+> flat/banded SaaS (predictable, utility framing); the IPO Track runs on engagement
+> fee **+ success fee and/or warrants**. A/B the two Tier-1 structures by segment.
+
 ## 6. The moat
 
 1. **The verified revenue spine** — once a company's truth lives in IPO OS,
@@ -131,8 +145,12 @@ and makes the paid product obviously valuable.
   is *reduce them to review-and-sign*, not eliminate them — exactly your framing.
   Keep the AI on the *preparer* side, never the *independent attestor* side.
 - **The audit firm must be independent of IPO OS** to sign a public-company audit.
-  Build a **panel of partner audit firms** the agents feed, rather than employing
-  the signing auditor. (You can own the *prep*; you can't own the *opinion*.)
+  **Decision (locked): pure-partner panels** — IPO OS never employs the signing
+  auditor or attorney. The agents feed a panel of independent audit firms and law
+  firms; the platform owns the *prep*, the panel owns the *opinion/filing*. This also
+  keeps you off the hook for malpractice/independence liability and sidesteps the
+  attorney fee-sharing problem (ABA Model Rule 5.4) — partners bill the client
+  directly; IPO OS charges a software/prep fee, not a cut of the legal fee.
 - **S-1 / securities work is the practice of law.** Attorneys must own final
   filings. IPO OS is a drafting + diligence accelerator for the law firm, not a
   replacement — pitch it to founders *and* to the firms as leverage.

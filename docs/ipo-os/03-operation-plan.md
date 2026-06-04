@@ -114,12 +114,20 @@ with auditor and attorney review hours dramatically below market.
 | **Data security / financial PII** | Read-only scoped revocable creds, tenant isolation, least privilege, immutable provenance log. |
 | **Adverse selection on free tier** | The data is the asset regardless; scoring filters who gets high-touch. |
 
-## What to validate next (open questions for you)
+## Locked decisions (from founder)
 
-1. Which **rail(s)** do you build first — Stripe-first (broadest) or Apple/Google-first
-   (cleanest reconciliation)? Recommend **Stripe + Apple** to start.
-2. Will you **operate the auditor/attorney panels** yourself or pure-partner? (Affects
-   independence posture and economics.)
-3. **Geography/standard:** US GAAP + SEC first, or also IFRS for non-US AI startups?
-4. **Pricing test:** flat SaaS vs revenue-banded for Tier 1; success-fee vs warrants
-   for the IPO Track.
+1. **Channels:** support **up to 10 traceable channels**; governing rule is
+   traceability to a third-party payout report + bank deposit, not the specific brand.
+   Build order: **Stripe + Apple first**, then Google, Meta, then the next six.
+2. **Panels:** **pure-partner** — never employ the signing auditor/attorney. Platform
+   owns prep; independent firms own opinion/filing. Keeps independence + liability clean.
+3. **Standards:** support **both US GAAP/SEC and IFRS** — US-first for go-to-market,
+   IFRS in the data model from day one so non-US AI startups aren't a re-architecture.
+4. **Pricing:** run **both** flat-SaaS and revenue-banded for Tier 1 (A/B by segment);
+   IPO Track on engagement fee + success fee/warrants.
+
+## Still to validate (post-research)
+
+- Which Tier-1 pricing structure wins by segment.
+- Panel economics: referral model, SLAs, and how partners price agent-prepped work.
+- IFRS rollout timing vs US-only depth.
