@@ -53,6 +53,7 @@ candidates faster and cheaper than any bank or law firm can.
 | [`16-three-alpha-moments.md`](./16-three-alpha-moments.md) | **The three alpha moments** — (1) instant paperwork-free growth loan off audited data; (2) meet many vibe coders (social); (3) be approached by investors with your DD report + business plan already done |
 | [`17-reshape-review-debate.md`](./17-reshape-review-debate.md) | **Reshape review (10-agent debate)** — verdict: core thesis on track, but scope drifted into an everything-platform; ruthless-focus reshape (keep/sharpen/defer/cut) on the debt-wedge + spine |
 | [`18-competitor-landscape.md`](./18-competitor-landscape.md) | **Competitor landscape** — who else in the world is building verified-data→capital, RBF/embedded lending, capital-readiness, diligence automation, and AI finance back office; differentiation & whitespace |
+| [`19-locked-focus-decision-record.md`](./19-locked-focus-decision-record.md) | **LOCKED FOCUS (read this for current direction)** — narrow to the debt wedge; credit-from-day-one is the core moat; partner via lending aggregator; keep social lean; defer equity/IPO. Supersedes broader scope above. |
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate
@@ -60,7 +61,14 @@ day-to-day. **`04` is the validation** — read it before committing capital; it
 tests the model against real evidence and lists what must change. `03` is go-to-market.
 `05` is what you hand a coding agent to start building.
 
-## Current positioning (after debates `04` + `06`)
+## ⭐ Current direction (LOCKED) — see [`19`](./19-locked-focus-decision-record.md)
+After the reshape debate (`17`) and competitor scan (`18`), scope is **narrowed to the debt
+wedge**: *verified/audited spine → instant, paperwork-free growth debt for vibe coders*, with
+**credit-from-day-one as the core moat**, **lending via an aggregator partner**, a **lean social/
+badge** acquisition layer, and the **equity/IPO side deferred**. `19` is the authoritative
+current plan; the docs below are the fuller design history.
+
+## Earlier positioning (after debates `04` + `06`)
 **Reposition from "IPO OS" to a neutral _Capital Trust Center_:** the AI-native finance +
 legal back office that keeps an AI startup *continuously, verifiably capital-ready*, so it
 raises faster and cheaper from **anyone** — lenders, PE, banks, and (eventually) public
