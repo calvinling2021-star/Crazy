@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "mcp": "tsx mcp/server.ts",
-    "test": "tsx scripts/cdp_smoke.ts",
+    "test": "tsx scripts/cdp_smoke.ts && tsx scripts/validate_data.ts",
+    "validate:data": "tsx scripts/validate_data.ts",
     "load:diligence": "node scripts/load_diligence.mjs"
   },
   "dependencies": {

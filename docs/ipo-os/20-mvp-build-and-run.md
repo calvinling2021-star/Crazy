@@ -32,7 +32,8 @@ scripts/cdp_smoke.ts         # assertion smoke test — npm test
 npm install
 npm run dev          # http://localhost:3000/attestly (landing) · /capital (dashboard)
 npm run build && npm run start
-npm test             # assertion smoke of the core
+npm test             # core assertions + diligence-data validation
+npm run validate:data  # validate catalog.json/providers.json (refs, enums, unique ids)
 ```
 The app reads `src/data/diligence/{catalog.json,providers.json}` directly — **no database needed**
 for the demo. Set a restricted, read-only `STRIPE_SECRET_KEY` in `.env` to switch to live data.
