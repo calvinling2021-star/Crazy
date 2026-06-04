@@ -2,10 +2,14 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AttestlyWordmark, AttestlyMark } from "@/components/attestly/Logo";
 
+const description =
+  "Connect your revenue read-only. Attestly keeps your financials verified and auditable, builds your credit from day one, and puts instant, paperwork-free growth capital one prompt away — inside Claude, Cursor, and Codex.";
+
 export const metadata: Metadata = {
   title: { absolute: "Attestly — Verified, not vibes." },
-  description:
-    "Connect your revenue read-only. Attestly keeps your financials verified and auditable, builds your credit from day one, and puts instant, paperwork-free growth capital one prompt away — inside Claude, Cursor, and Codex.",
+  description,
+  openGraph: { title: "Attestly — Verified, not vibes.", description, images: ["/api/og"] },
+  twitter: { card: "summary_large_image", title: "Attestly — Verified, not vibes.", description, images: ["/api/og"] },
 };
 
 const pillars = [

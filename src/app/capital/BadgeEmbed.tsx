@@ -51,6 +51,28 @@ export function BadgeEmbed() {
           </div>
         ))}
       </div>
+
+      <div className="mt-4 flex items-center gap-3 border-t border-neutral-800 pt-4">
+        <span className="text-xs text-neutral-500">Share card:</span>
+        <a
+          href={`${origin}/api/og`}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-neutral-700 px-3 py-1.5 text-[11px] text-neutral-300"
+        >
+          Open share image
+        </a>
+        <a
+          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            "I'm a Verified Builder on Attestly — verified revenue + a credit score from day one. Verified, not vibes."
+          )}&url=${encodeURIComponent(linkUrl)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg bg-[#5B8CFF] px-3 py-1.5 text-[11px] font-semibold text-[#0B0F14]"
+        >
+          Share on X
+        </a>
+      </div>
     </div>
   );
 }
