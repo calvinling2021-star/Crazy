@@ -39,7 +39,7 @@ Expected: credit score ~70 (Strong), four indicative offers (Founderpath/Pipe/Wa
 
 ### Run the MCP server (agent-native distribution)
 ```bash
-npm run mcp          # stdio MCP server "capital-trust-center"
+npm run mcp          # stdio MCP server "vibe-coder-operation-platform"
 ```
 Tools exposed: `get_credit_score`, `check_deadlines`, `verify_revenue`, `match_capital`,
 `get_readiness_score`, `assemble_checklist` (name a provider id), `list_providers`.

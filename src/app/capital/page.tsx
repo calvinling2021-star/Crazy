@@ -23,7 +23,7 @@ export default function CapitalPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <header className="flex items-end justify-between border-b border-neutral-800 pb-5">
           <div>
-            <p className="text-xs uppercase tracking-widest text-neutral-500">Capital Trust Center</p>
+            <p className="text-xs uppercase tracking-widest text-neutral-500">Vibe Coder Operation Platform</p>
             <h1 className="text-2xl font-semibold">{s.company.name}</h1>
             <p className="text-sm text-neutral-400">
               {s.company.entityType} · {s.company.jurisdiction} · verified as of {s.metrics.asOf}

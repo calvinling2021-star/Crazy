@@ -1,4 +1,4 @@
--- Capital Trust Center — Due-Diligence Catalog schema (SQLite).
+-- Vibe Coder Operation Platform — Due-Diligence Catalog schema (SQLite).
 -- Materialized from catalog.json by scripts/load_diligence.mjs.
 -- Drives automation: assemble the checklist for a given capital source + stage,
 -- then auto-prepare each item from connected data feeds and platform modules.

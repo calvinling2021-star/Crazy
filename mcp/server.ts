@@ -1,4 +1,4 @@
-// Capital Trust Center — MCP server (docs/ipo-os/11 + 19).
+// Vibe Coder Operation Platform — MCP server (docs/ipo-os/11 + 19).
 // One server, reusable across Claude, Codex, Gemini, Cursor, Windsurf, etc.
 // Run: npm run mcp   (stdio transport). All tools are read-only and deterministic.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -14,7 +14,7 @@ import {
   listProviders,
 } from "../src/lib/cdp/index";
 
-const server = new McpServer({ name: "capital-trust-center", version: "0.1.0" });
+const server = new McpServer({ name: "vibe-coder-operation-platform", version: "0.1.0" });
 
 const wrap = (obj: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(obj, null, 2) }],
@@ -75,4 +75,4 @@ server.tool(
 const transport = new StdioServerTransport();
 await server.connect(transport);
 // eslint-disable-next-line no-console
-console.error("[capital-trust-center] MCP server running on stdio");
+console.error("[vibe-coder-operation-platform] MCP server running on stdio");

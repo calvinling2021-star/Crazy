@@ -4,12 +4,14 @@
 > `20-mvp-build-and-run.md`. Those docs are the durable memory of the design + decisions.
 
 ## What this project is (current, locked direction)
-**Capital Trust Center** — an AI-native platform that connects a "vibe coder" / early founder's
+**Vibe Coder Operation Platform (VCOP)** — an AI-native platform that connects a "vibe coder" / early founder's
 revenue rails (read-only), keeps **verified, auditable financials**, builds a **credit score from
 day one**, and gets them **instant, paperwork-free growth debt** — "the key is seamless, not the
 fund." Distributed agent-natively (MCP). Equity/IPO and a full social network are **deferred/cut**
 (see `docs/ipo-os/19`). The repo also contains an unrelated legacy Next.js site ("Molecule
 Capital") + a Python deal-sourcing `pipeline/` — leave those unless asked.
+Name lineage: *IPO OS → Capital Trust Center → **Vibe Coder Operation Platform (VCOP)***; older
+names still appear in code/docs and mean the same product.
 
 ## Locked decisions (docs/ipo-os/17–19)
 1. Narrow to the **debt wedge** (verified spine → instant paperwork-free growth debt).

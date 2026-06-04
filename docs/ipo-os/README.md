@@ -1,9 +1,14 @@
-# IPO OS — Business Model Reshape, Agent Prompts & Operation Plan
+# Vibe Coder Operation Platform — design docs
 
-> Working design docs for repositioning **IPO OS**: the AI-native operating system
-> that takes AI startups from "having fans and users" to **audit-ready, raise-ready,
-> and IPO-ready** — with AI agents doing the heavy lifting and humans (auditor,
-> attorney) reduced to review-and-sign-off.
+> **Product name: Vibe Coder Operation Platform (VCOP).** Name lineage: *IPO OS →
+> Capital Trust Center → **Vibe Coder Operation Platform***. The earlier names appear
+> throughout the historical docs below — read them as the same product under its prior
+> working names. **Current direction is locked in [`19`](./19-locked-focus-decision-record.md);
+> what's built + how to run is in [`20`](./20-mvp-build-and-run.md).**
+
+> Original framing (historical): the AI-native operating system that takes AI builders
+> from "having users" to audit-ready, funded, and capital-ready — AI does the heavy
+> lifting, humans (auditor, attorney) reduced to review-and-sign-off.
 
 ## The one-sentence thesis
 

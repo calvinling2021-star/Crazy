@@ -1,4 +1,4 @@
-// Capital Trust Center core — single entry point used by the Next API, the dashboard page,
+// Vibe Coder Operation Platform — core single entry point used by the Next API, the dashboard page,
 // and the MCP server. All outputs are deterministic from verified data (docs/ipo-os/19).
 import { getCompany } from "./demo";
 import { computeVerifiedMetrics } from "./spine";

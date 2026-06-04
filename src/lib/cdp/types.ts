@@ -1,4 +1,4 @@
-// Capital Trust Center — core domain types (the focused debt-wedge MVP, see docs/ipo-os/19).
+// Vibe Coder Operation Platform — core domain types (the focused debt-wedge MVP, see docs/ipo-os/19).
 // Numbers are plain USD dollars for the demo; a production build uses integer minor units.
 
 export interface MonthRevenue {

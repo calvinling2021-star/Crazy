@@ -1,4 +1,4 @@
-// Quick smoke test of the Capital Trust Center core (no external deps).
+// Quick smoke test of the Vibe Coder Operation Platform core (no external deps).
 // Run: npx -y tsx scripts/cdp_smoke.ts
 import { getFounderState, assembleChecklist, listProviders } from "../src/lib/cdp/index";
 

@@ -1,4 +1,4 @@
-// Capital Trust Center — Due-Diligence Catalog types.
+// Vibe Coder Operation Platform — Due-Diligence Catalog types.
 //
 // The catalog is the machine-readable source of truth for every document/data item that
 // a capital provider (lender, VC, PE, acquirer, exchange) may request from a startup.
