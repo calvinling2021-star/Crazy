@@ -66,8 +66,7 @@ function statusForItem(it?: CatalogItem): ChecklistLine["status"] {
   return "auto_preparing";
 }
 
-function readinessPct(itemIds: string[]): { pct: number; ready: number; total: number } {
-  const total = itemIds.length;
+function readinessPct(itemIds: string[]): { pct: number; ready: number; total: number } {  const total = itemIds.length;
   if (total === 0) return { pct: 100, ready: 0, total: 0 };
   let score = 0;
   let ready = 0;
@@ -205,3 +204,49 @@ export function assembleChecklist(providerId: string): ProviderChecklist | null 
 export function listProviders(): { id: string; name: string; type: string }[] {
   return PROVIDERS.map((p) => ({ id: p.id, name: p.name, type: p.type }));
 }
+
+export interface DataRoomReadiness {
+  overallPct: number;
+  ready: number;
+  autoPreparing: number;
+  needsYou: number;
+  total: number;
+  byCategory: { category: string; pct: number; ready: number; total: number }[];
+}
+
+// Overall data-room readiness across the full diligence catalog (all 200 items): how much is
+// auto-prepared from connected data vs needs the founder. Powers the "your data room is X% ready".
+export function dataRoomReadiness(): DataRoomReadiness {
+  let ready = 0;
+  let autoPreparing = 0;
+  let needsYou = 0;
+  const cat = new Map<string, { score: number; ready: number; total: number }>();
+
+  for (const it of CATALOG) {
+    const st = statusForItem(it);
+    if (st === "ready") ready++;
+    else if (st === "auto_preparing") autoPreparing++;
+    else needsYou++;
+    const c = cat.get(it.category) || { score: 0, ready: 0, total: 0 };
+    c.total++;
+    if (st === "ready") { c.score += 1; c.ready++; }
+    else if (st === "auto_preparing") c.score += 0.6;
+    cat.set(it.category, c);
+  }
+
+  const total = CATALOG.length;
+  const overallScore = ready + 0.6 * autoPreparing;
+  const byCategory = [...cat.entries()]
+    .map(([category, c]) => ({ category, pct: Math.round((c.score / c.total) * 100), ready: c.ready, total: c.total }))
+    .sort((a, b) => b.pct - a.pct);
+
+  return {
+    overallPct: Math.round((overallScore / total) * 100),
+    ready,
+    autoPreparing,
+    needsYou,
+    total,
+    byCategory,
+  };
+}
+

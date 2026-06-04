@@ -1,4 +1,4 @@
-import { getFounderStateAsync, listProviders } from "@/lib/cdp";
+import { getFounderStateAsync, listProviders, dataRoomReadiness } from "@/lib/cdp";
 import { FirmSelector } from "./FirmSelector";
 import { OfferCard } from "./OfferCard";
 import { BadgeEmbed } from "./BadgeEmbed";
@@ -20,6 +20,7 @@ function money(n: number) {
 export default async function CapitalPage() {
   const s = await getFounderStateAsync();
   const providers = listProviders();
+  const dataRoom = dataRoomReadiness();
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 px-6 py-10">
@@ -119,6 +120,36 @@ export default async function CapitalPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Data-room readiness across the full catalog */}
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-neutral-300">Data-room readiness</h2>
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+            <div className="flex items-end justify-between">
+              <div>
+                <span className="font-mono text-4xl font-bold text-[#3DD68C]">{dataRoom.overallPct}%</span>
+                <span className="ml-2 text-sm text-neutral-400">assembled</span>
+              </div>
+              <p className="text-xs text-neutral-500">
+                {dataRoom.ready} ready · {dataRoom.autoPreparing} auto-preparing · {dataRoom.needsYou} need you
+                <span className="text-neutral-600"> · {dataRoom.total} diligence items tracked</span>
+              </p>
+            </div>
+            <div className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+              {dataRoom.byCategory.slice(0, 10).map((c) => (
+                <div key={c.category}>
+                  <div className="flex justify-between text-[11px] text-neutral-400">
+                    <span>{c.category}</span>
+                    <span className="font-mono">{c.pct}%</span>
+                  </div>
+                  <div className="h-1 rounded bg-neutral-800">
+                    <div className="h-1 rounded bg-emerald-500" style={{ width: `${c.pct}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

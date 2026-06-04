@@ -5,7 +5,7 @@ import { loadCompany, liveDataConfigured } from "./connectors";
 import { computeVerifiedMetrics } from "./spine";
 import { computeCreditScore } from "./creditScore";
 import { computeReadiness } from "./readiness";
-import { matchCapital, assembleChecklist, listProviders } from "./capital";
+import { matchCapital, assembleChecklist, listProviders, dataRoomReadiness } from "./capital";
 import type { Company, FounderState } from "./types";
 
 function stateFromCompany(company: Company): FounderState {
@@ -68,5 +68,5 @@ export async function getCapitalMatchAsync(companyId?: string) {
   return matchCapital(company, m, computeCreditScore(m));
 }
 
-export { assembleChecklist, listProviders, liveDataConfigured };
+export { assembleChecklist, listProviders, dataRoomReadiness, liveDataConfigured };
 export * from "./types";

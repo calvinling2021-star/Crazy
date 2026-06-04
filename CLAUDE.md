@@ -26,7 +26,7 @@ Non-negotiables: deterministic numbers (never AI-guessed), human-signed where at
 absolute neutrality (never a deal counterparty), debt-referral/flat-fee legal lane.
 
 ## What's built (runnable, validated, deployable)
-**Status:** `npm install` ✓ · `npm run build` ✓ (TS clean, 14 routes) · `npm test` ✓ · `npm run mcp` boots ✓.
+**Status:** `npm install` ✓ · `npm run build` ✓ (TS clean) · `npm test` ✓ (smoke + data validation) · `npm run mcp` boots ✓.
 - `src/lib/cdp/` — deterministic core: `spine.ts` (verified metrics), `creditScore.ts` (the moat
   = Attestly Standing; + `FACTOR_GUIDANCE`/`BANDS`/`rankFactorsByOpportunity`), `readiness.ts`
   (83(b)/BOI/cap-table alerts), `connectors.ts` (`RailConnector` + live **read-only Stripe** +
@@ -37,11 +37,13 @@ absolute neutrality (never a deal counterparty), debt-referral/flat-fee legal la
   (Standing, Attestly Line offers w/ draw flow, deadline alerts, "name a firm", Verified badge
   embed); `capital/connect/` — read-only onboarding; `capital/standing/` — score detail +
   how-to-improve. `src/components/attestly/Logo.tsx` — brand marks.
-- `src/app/api/cdp/*` — JSON endpoints (state / checklist / providers); `api/badge` + `api/og` —
-  embeddable verified-revenue badge + 1200×630 social share card (the growth loop).
+- `src/app/api/cdp/*` — JSON endpoints (state / checklist / providers / dataroom); `api/badge` +
+  `api/og` — embeddable verified-revenue badge + 1200×630 social share card (the growth loop).
 - `mcp/server.ts` — **Attestly MCP** (`npm run mcp`): get_credit_score, improve_standing,
-  check_deadlines, verify_revenue, match_capital, get_readiness_score, assemble_checklist,
-  list_providers (use live Stripe when `STRIPE_SECRET_KEY` set).
+  check_deadlines, verify_revenue, match_capital, get_readiness_score, data_room_readiness,
+  assemble_checklist, list_providers (use live Stripe when `STRIPE_SECRET_KEY` set).
+- `scripts/` — `cdp_smoke.ts` (assertion test), `validate_data.ts` (`npm run validate:data`),
+  `map_unreferenced.ts` (catalog→provider mapping), `load_diligence.mjs` (SQLite).
 - `src/data/diligence/` — 200-item `catalog.json` + 71-provider `providers.json` + `schema.sql` + loader.
 - `docs/ops/` — operational-readiness checklist + aggregator selection scorecard.
 

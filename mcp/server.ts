@@ -12,6 +12,7 @@ import {
   getCapitalMatchAsync,
   assembleChecklist,
   listProviders,
+  dataRoomReadiness,
 } from "../src/lib/cdp/index";
 import { FACTOR_GUIDANCE, rankFactorsByOpportunity } from "../src/lib/cdp/creditScore";
 
@@ -77,6 +78,13 @@ server.tool(
     const c = assembleChecklist(providerId);
     return wrap(c ?? { error: "unknown provider", hint: "call list_providers for valid ids" });
   }
+);
+
+server.tool(
+  "data_room_readiness",
+  "Get overall data-room readiness across the full 200-item diligence catalog (auto-prepared vs needs-you), with a per-category breakdown.",
+  {},
+  async () => wrap(dataRoomReadiness())
 );
 
 server.tool(

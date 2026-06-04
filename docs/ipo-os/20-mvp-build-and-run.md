@@ -50,7 +50,8 @@ Expected: credit score ~70 (Strong), four indicative offers (Founderpath/Pipe/Wa
 npm run mcp          # stdio MCP server "vibe-coder-operation-platform"
 ```
 Tools exposed: `get_credit_score`, `improve_standing`, `check_deadlines`, `verify_revenue`,
-`match_capital`, `get_readiness_score`, `assemble_checklist` (name a provider id), `list_providers`.
+`match_capital`, `get_readiness_score`, `data_room_readiness`, `assemble_checklist` (name a
+provider id), `list_providers`.
 Add it to Claude/Cursor/etc. as a stdio MCP server pointing at `npm run mcp` (or
 `tsx /abs/path/mcp/server.ts`).
 
