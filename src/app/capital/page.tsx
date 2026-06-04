@@ -1,5 +1,6 @@
 import { getFounderStateAsync, listProviders } from "@/lib/cdp";
 import { FirmSelector } from "./FirmSelector";
+import { AttestlyWordmark } from "@/components/attestly/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,8 @@ export default async function CapitalPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <header className="flex items-end justify-between border-b border-neutral-800 pb-5">
           <div>
-            <p className="text-xs uppercase tracking-widest text-neutral-500">Vibe Coder Operation Platform</p>
-            <h1 className="text-2xl font-semibold">{s.company.name}</h1>
+            <AttestlyWordmark size={20} />
+            <h1 className="mt-2 text-2xl font-semibold">{s.company.name}</h1>
             <p className="text-sm text-neutral-400">
               {s.company.entityType} · {s.company.jurisdiction} · verified as of {s.metrics.asOf}
             </p>
@@ -42,7 +43,7 @@ export default async function CapitalPage() {
         {/* Credit score + instant capital */}
         <section className="grid gap-5 md:grid-cols-3">
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 md:col-span-1">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Credit score (day-one)</p>
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Standing · credit from day one</p>
             <div className="mt-2 flex items-end gap-2">
               <span className="text-5xl font-bold">{s.creditScore.score}</span>
               <span className="mb-1 rounded-md bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300">
@@ -82,7 +83,7 @@ export default async function CapitalPage() {
 
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.04] p-5">
               <p className="text-sm font-medium text-emerald-300">
-                Instant growth capital — no paperwork, your audited data is the application
+                Attestly Line — instant capital, no paperwork. Your audited data is the application.
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {s.capital.offers.length === 0 && (

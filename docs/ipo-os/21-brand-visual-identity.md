@@ -1,7 +1,14 @@
-# 21 — Brand & Visual Identity (VCOP)
+# 21 — Brand & Visual Identity
 
-> Brand book v1.0 for **Vibe Coder Operation Platform (VCOP)**. Drop-in: real hex, real fonts,
-> working SVG. Direction grounded in Vercel / Linear / Supabase / Resend / Raycast.
+> ✅ **Launch brand decided: Attestly** (codename: VCOP). The naming section §2 below predates
+> the decision — use the canonical naming in [`24`](./24-product-naming.md): brand **Attestly**,
+> wordmark `attestly`, sub-brands **Attestly Connect** (read-only rails) → **Standing** (the
+> credit-from-day-one score) → **Line** (instant capital), all via **Attestly MCP**. Taglines:
+> "Verified, not vibes." / "Attest your revenue. Get your capital." / "The key is seamless, not
+> the fund." Everything else here (voice, color, type, UI, motion, SVG direction) stands.
+
+> Brand book v1.0 for **Attestly**. Drop-in: real hex, real fonts, working SVG.
+> Direction grounded in Vercel / Linear / Supabase / Resend / Raycast.
 
 ## 1. Brand strategy
 - **Positioning (one line):** *The financial operating layer for AI builders — verified numbers

@@ -14,7 +14,7 @@ import {
   listProviders,
 } from "../src/lib/cdp/index";
 
-const server = new McpServer({ name: "vibe-coder-operation-platform", version: "0.1.0" });
+const server = new McpServer({ name: "attestly", version: "0.1.0" });
 
 const wrap = (obj: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(obj, null, 2) }],
@@ -75,4 +75,4 @@ server.tool(
 const transport = new StdioServerTransport();
 await server.connect(transport);
 // eslint-disable-next-line no-console
-console.error("[vibe-coder-operation-platform] MCP server running on stdio");
+console.error("[attestly] MCP server running on stdio");

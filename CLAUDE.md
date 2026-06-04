@@ -4,7 +4,10 @@
 > `20-mvp-build-and-run.md`. Those docs are the durable memory of the design + decisions.
 
 ## What this project is (current, locked direction)
-**Vibe Coder Operation Platform (VCOP)** — an AI-native platform that connects a "vibe coder" / early founder's
+**Launch brand: Attestly** (codename: VCOP / "Vibe Coder Operation Platform"). Sub-brands:
+Attestly **Connect** (read-only rails) → **Standing** (credit score) → **Line** (capital), via
+**Attestly MCP**. Taglines: "Verified, not vibes." / "The key is seamless, not the fund." See
+`docs/ipo-os/24` (naming) + `21` (brand book). The product is an AI-native platform that connects a "vibe coder" / early founder's
 revenue rails (read-only), keeps **verified, auditable financials**, builds a **credit score from
 day one**, and gets them **instant, paperwork-free growth debt** — "the key is seamless, not the
 fund." Distributed agent-natively (MCP). Equity/IPO and a full social network are **deferred/cut**
