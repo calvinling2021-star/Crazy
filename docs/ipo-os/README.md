@@ -38,7 +38,20 @@ candidates faster and cheaper than any bank or law firm can.
 | [`01-agent-architecture.md`](./01-agent-architecture.md) | The agent roster, the single "revenue spine," human-in-the-loop boundaries, compliance guardrails |
 | [`02-prompt-library.md`](./02-prompt-library.md) | Copy-paste **system prompts** for every agent (revenue truth, audit, S-1, deck, legal, IPO scoring, growth, self-improvement) |
 | [`03-operation-plan.md`](./03-operation-plan.md) | 0→12-month phased rollout, GTM motion, the "must-have" hooks, metrics, risks & legal reality checks |
+| [`04-stakeholder-debate.md`](./04-stakeholder-debate.md) | **Deep-research validation** — 10 stakeholders (founder, banker, attorney, auditor, regulator, VC, public investor, accountant, skeptic, competitor) debate the model with cited evidence; verdict + 6 forced pivots |
+| [`05-coding-prompt.md`](./05-coding-prompt.md) | **Ready-to-use build prompt** for the A1 Revenue Truth MVP (deterministic verified-revenue engine), with the rationale tying each design choice to the research |
 
 ## Read order
-Start with `00`, skim `01` for the architecture, then `02` is the part you actually
-operate day-to-day. `03` is the go-to-market and sequencing.
+Start with `00`, skim `01` for the architecture, then `02` is the part you operate
+day-to-day. **`04` is the validation** — read it before committing capital; it stress-
+tests the model against real evidence and lists what must change. `03` is go-to-market.
+`05` is what you hand a coding agent to start building.
+
+## Headline finding from the research debate (`04`)
+The model is **viable, but not as "IPO in a box."** The durable, fundable business is a
+**Vanta-for-startup-finance**: deterministic verified revenue → continuously audit-ready
+books → fundraise/diligence-ready data room, sold as a *present-tense utility*. The
+"IPO" is a **brand halo + on-ramp**, realized mostly as private liquidity / exit-
+readiness, because the real barrier for small AI startups is **aftermarket demand, not
+process cost** — software can't manufacture a buyer base. Six forced pivots are listed
+at the end of `04`. **Build `05` (Revenue Truth) first** — every stakeholder endorsed it.
