@@ -1,7 +1,21 @@
 # 03 — Operation Plan
 
+> **⚠️ Positioning update (per [`06`](./06-positioning-debate.md)).** This plan predates the
+> repositioning to a neutral **Capital Trust Center**. Two corrections to apply as you read:
+> 1. **Entry beachhead is the lending/borrower rail**, not broad Tier-1 SaaS — that's where
+>    a capital provider will *refuse to fund without verified data* (the real forcing
+>    function). Land lenders first (they pay), expand to PE/M&A diligence, then readiness,
+>    then listing. **VC is accept-not-mandate.**
+> 2. **"IPO Track" → "Capital-Readiness Ladder."** IPO is the top rung. Read "Tier-2 / IPO
+>    Track" below as the upper rungs of that ladder (audit/listing readiness), not the
+>    primary business.
+>
+> The phasing and metrics below are still useful; reorder Phase 0/1 around the lending
+> beachhead. The revised entry sequence and who-pays model are in `06`.
+
 A sequenced plan to build the product *while reshaping the model*, land the whole
-AI-startup population on Tier 1, and graduate the best into the IPO Track.
+AI-startup population on the **Capital-Readiness Ladder**, and graduate the best to
+audit/listing readiness (formerly "the IPO Track").
 
 ## North-star + guardrail metrics
 

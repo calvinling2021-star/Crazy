@@ -1,5 +1,23 @@
 # 00 — Business Model Reshape
 
+> **⚠️ Positioning update (supersedes the "IPO OS" framing below).** After the
+> validation debates in [`04`](./04-stakeholder-debate.md) and
+> [`06`](./06-positioning-debate.md), the product is repositioned from **"IPO OS"** to a
+> neutral **Capital Trust Center**: the AI-native finance + legal back office that keeps
+> an AI startup *continuously, verifiably capital-ready* so it raises faster and cheaper
+> from **anyone** (lenders, PE, banks, and — at the top of the ladder — public markets).
+> Key changes to read this doc through:
+> - **"IPO Track" → "Capital-Readiness Ladder."** IPO is the top rung, not the brand.
+> - **Enter via the lending/borrower rail** ("Plaid for startup revenue") — the one place a
+>   capital provider genuinely *refuses to fund without verified data*. VC is the weakest
+>   forcing function (accept-not-mandate).
+> - **Founder-free, capital-provider-paid** monetization (Plaid/credit-bureau model).
+> - **Hard neutrality firewall** — subscription/access fees only, never a deal counterparty.
+>
+> The sections below remain valid on the *mechanics* (traceable revenue, the spine,
+> agents); mentally substitute "Capital Trust Center" for "IPO OS" and "Capital-Readiness
+> Ladder" for "IPO Track" throughout. The definitive positioning is in `06`.
+
 ## 1. The strategic insight you already have (made explicit)
 
 There is a large, fast-growing population of AI startups that:
