@@ -5,11 +5,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import {
-  getFounderState,
-  getCreditScore,
-  getReadiness,
-  getVerifiedMetrics,
-  getCapitalMatch,
+  getFounderStateAsync,
+  getCreditScoreAsync,
+  getReadinessAsync,
+  getVerifiedMetricsAsync,
+  getCapitalMatchAsync,
   assembleChecklist,
   listProviders,
 } from "../src/lib/cdp/index";
@@ -24,35 +24,35 @@ server.tool(
   "get_credit_score",
   "Get the founder's deterministic 'credit-from-day-one' score, band, factors, and indicative capacity.",
   {},
-  async () => wrap(getCreditScore())
+  async () => wrap(await getCreditScoreAsync())
 );
 
 server.tool(
   "check_deadlines",
   "Get time-sensitive readiness alerts auto-detected from connected data (83(b), BOI, cap-table hygiene, rail completeness).",
   {},
-  async () => wrap(getReadiness())
+  async () => wrap(await getReadinessAsync())
 );
 
 server.tool(
   "verify_revenue",
   "Get verified revenue metrics (MRR, ARR, growth, NRR/GRR, runway, reconciliation) computed deterministically from rails.",
   {},
-  async () => wrap(getVerifiedMetrics())
+  async () => wrap(await getVerifiedMetricsAsync())
 );
 
 server.tool(
   "match_capital",
   "Get the debt providers the founder qualifies for, readiness per provider, and instant indicative offers (no paperwork).",
   {},
-  async () => wrap(getCapitalMatch())
+  async () => wrap(await getCapitalMatchAsync())
 );
 
 server.tool(
   "get_readiness_score",
   "Get the full founder state: company, verified metrics, credit score, readiness alerts, and capital match.",
   {},
-  async () => wrap(getFounderState())
+  async () => wrap(await getFounderStateAsync())
 );
 
 server.tool(

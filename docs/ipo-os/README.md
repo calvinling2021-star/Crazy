@@ -64,6 +64,11 @@ candidates faster and cheaper than any bank or law firm can.
 | [`21-brand-visual-identity.md`](./21-brand-visual-identity.md) | **Brand & visual identity** — positioning, voice, taglines, naming (VCOP/"Vibe", TrustScore), color/type tokens, logo SVG, UI aesthetic |
 | [`22-marketing-gtm.md`](./22-marketing-gtm.md) | **Marketing & GTM** — "make you financeable" narrative, hooks, ranked channels, 8-week launch, growth loops, content engine, funnel & KPIs |
 | [`23-operations.md`](./23-operations.md) | **Operations** — finder/flat-fee legal lane, FCRA/CRA boundary, aggregator + CPA panel ops, deterministic data pipeline, hiring, roadmap, company funding plan |
+| [`24-product-naming.md`](./24-product-naming.md) | **Launch name (recommendation)** — VCOP is the codename; recommended launch brand **Attestly** (alts Capline/Attesta), sub-brands, tagline, due-diligence checklist. *Pending founder decision.* |
+
+**Operational artifacts:** [`docs/ops/operational-readiness.md`](../ops/operational-readiness.md)
+(gated go-live checklist) · [`docs/ops/aggregator-scorecard.md`](../ops/aggregator-scorecard.md)
+(lending-partner selection).
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate

@@ -1,4 +1,4 @@
-import { getFounderState, listProviders } from "@/lib/cdp";
+import { getFounderStateAsync, listProviders } from "@/lib/cdp";
 import { FirmSelector } from "./FirmSelector";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +14,8 @@ function money(n: number) {
   return "$" + n.toLocaleString();
 }
 
-export default function CapitalPage() {
-  const s = getFounderState();
+export default async function CapitalPage() {
+  const s = await getFounderStateAsync();
   const providers = listProviders();
 
   return (
@@ -29,9 +29,14 @@ export default function CapitalPage() {
               {s.company.entityType} · {s.company.jurisdiction} · verified as of {s.metrics.asOf}
             </p>
           </div>
-          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
-            ✓ Revenue verified · rail→bank reconciled
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full border px-3 py-1 text-xs ${s.live ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-neutral-700 bg-neutral-800/60 text-neutral-400"}`}>
+              {s.live ? "● live (Stripe read-only)" : "● demo data"}
+            </span>
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+              ✓ verified · rail→bank reconciled
+            </span>
+          </div>
         </header>
 
         {/* Credit score + instant capital */}
