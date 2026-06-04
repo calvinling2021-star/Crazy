@@ -40,6 +40,8 @@ candidates faster and cheaper than any bank or law firm can.
 | [`03-operation-plan.md`](./03-operation-plan.md) | 0→12-month phased rollout, GTM motion, the "must-have" hooks, metrics, risks & legal reality checks |
 | [`04-stakeholder-debate.md`](./04-stakeholder-debate.md) | **Deep-research validation** — 10 stakeholders (founder, banker, attorney, auditor, regulator, VC, public investor, accountant, skeptic, competitor) debate the model with cited evidence; verdict + 6 forced pivots |
 | [`05-coding-prompt.md`](./05-coding-prompt.md) | **Ready-to-use build prompt** for the A1 Revenue Truth MVP (deterministic verified-revenue engine), with the rationale tying each design choice to the research |
+| [`06-positioning-debate.md`](./06-positioning-debate.md) | **Positioning & entry-point debate** — 10 stakeholders decide: reposition from "IPO OS" to a neutral **Capital Trust Center**, enter via the **lending rail** (real forcing function), Vanta/TrustMRR-grounded GTM, and how far "replace the CFO/CLO" can go |
+| [`07-cap-table-and-expense.md`](./07-cap-table-and-expense.md) | **Auditable cap table + expense management** — Carta-style equity and Ramp/Brex-style spend built ON the verified spine, designed so every share, option, and dollar of spend is audit-traceable |
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate
@@ -47,11 +49,23 @@ day-to-day. **`04` is the validation** — read it before committing capital; it
 tests the model against real evidence and lists what must change. `03` is go-to-market.
 `05` is what you hand a coding agent to start building.
 
-## Headline finding from the research debate (`04`)
-The model is **viable, but not as "IPO in a box."** The durable, fundable business is a
-**Vanta-for-startup-finance**: deterministic verified revenue → continuously audit-ready
-books → fundraise/diligence-ready data room, sold as a *present-tense utility*. The
-"IPO" is a **brand halo + on-ramp**, realized mostly as private liquidity / exit-
-readiness, because the real barrier for small AI startups is **aftermarket demand, not
-process cost** — software can't manufacture a buyer base. Six forced pivots are listed
-at the end of `04`. **Build `05` (Revenue Truth) first** — every stakeholder endorsed it.
+## Current positioning (after debates `04` + `06`)
+**Reposition from "IPO OS" to a neutral _Capital Trust Center_:** the AI-native finance +
+legal back office that keeps an AI startup *continuously, verifiably capital-ready*, so it
+raises faster and cheaper from **anyone** — lenders, PE, banks, and (eventually) public
+markets. Key decisions from the debates:
+
+- **Name the recurring trust artifact, not the rare event.** "IPO" is the top rung of a
+  ladder, not the brand (Vanta is a *trust* platform, not "SOC 2 OS").
+- **Enter via the lending/borrower rail** ("Plaid for startup revenue") — the one place a
+  capital provider will genuinely *refuse to fund without verified data*. VC is the
+  weakest forcing function; treat it as accept-not-mandate.
+- **Founder-free, capital-provider-paid** monetization (Plaid/credit-bureau model) +
+  premium founder tiers during raises.
+- **"AI does the work of a CFO + GC; a named human signs the last 20%"** — own the
+  unclaimed *finance↔legal integrating layer*; never market "replace the CFO/CLO."
+- **Hard neutrality firewall** — subscription/access fees only, never a deal counterparty
+  (the Carta lesson) — the precondition for becoming a multi-acceptor *standard*.
+
+**Everything rests on one spine: deterministic, audit-traceable verified data.** Build
+`05` (Revenue Truth) first; `07` extends the same auditable spine to cap table + expense.
