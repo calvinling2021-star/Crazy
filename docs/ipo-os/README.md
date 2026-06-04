@@ -51,6 +51,8 @@ candidates faster and cheaper than any bank or law firm can.
 | [`14-alpha-moment-provider-matching.md`](./14-alpha-moment-provider-matching.md) | **Alpha moment** — 71 named providers × 506 requirement mappings (`src/data/diligence/providers.json`): name a firm → exact checklist → % already prepared; reverse-match "firms you qualify for" |
 | [`15-debt-and-credit-building.md`](./15-debt-and-credit-building.md) | **Debt-first + credit-building** — the bigger lending market; two-sided trust; an audit-based startup credit score from day one; "the key is seamless, not the fund" |
 | [`16-three-alpha-moments.md`](./16-three-alpha-moments.md) | **The three alpha moments** — (1) instant paperwork-free growth loan off audited data; (2) meet many vibe coders (social); (3) be approached by investors with your DD report + business plan already done |
+| [`17-reshape-review-debate.md`](./17-reshape-review-debate.md) | **Reshape review (10-agent debate)** — verdict: core thesis on track, but scope drifted into an everything-platform; ruthless-focus reshape (keep/sharpen/defer/cut) on the debt-wedge + spine |
+| [`18-competitor-landscape.md`](./18-competitor-landscape.md) | **Competitor landscape** — who else in the world is building verified-data→capital, RBF/embedded lending, capital-readiness, diligence automation, and AI finance back office; differentiation & whitespace |
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate
