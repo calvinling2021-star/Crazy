@@ -93,6 +93,14 @@ numbers — see test plan):
 | **Scale** | Series A+ / audit-ready | ~$399–699/mo | Audit-ready workpapers for an independent partner; cap-table + ICFR evidence; attorney-ready legal stack; priority partner network. |
 | **Capital events** | PE / M&A / IPO | **Commission / success fee** (+ retainer) | Managed readiness through a transaction; partner auditors/attorneys; success fee or warrants **only at close**, later-stage only. |
 
+**Success-fee benchmarks** (precedented at the capital event): AngelList ~5% + 2.5% success;
+Wefunder ~7.5–7.9% success-only; Republic 6% cash + 2% equity. A 5–8% fee at close is market
+— but for **equity** it must run through a registered/no-action structure (broker-dealer
+caution, see [`10`](./10-growth-and-distribution.md) §5). Debt referral fees are lower-risk;
+lead there. **Day-one hook (free):** 83(b)/BOI/cap-table **deadline alerts** auto-detected
+from the user's rails — invisible-until-expensive pains that make the product must-have at $0
+revenue (detailed in `10` §1).
+
 **Why this shape:**
 - **Low entry / free** is mandatory for a high-volume, price-sensitive solo-builder
   audience (the land motion). The data they connect is the moat regardless of whether they

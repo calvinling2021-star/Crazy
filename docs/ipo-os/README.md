@@ -42,6 +42,9 @@ candidates faster and cheaper than any bank or law firm can.
 | [`05-coding-prompt.md`](./05-coding-prompt.md) | **Ready-to-use build prompt** for the A1 Revenue Truth MVP (deterministic verified-revenue engine), with the rationale tying each design choice to the research |
 | [`06-positioning-debate.md`](./06-positioning-debate.md) | **Positioning & entry-point debate** — 10 stakeholders decide: reposition from "IPO OS" to a neutral **Capital Trust Center**, enter via the **lending rail** (real forcing function), Vanta/TrustMRR-grounded GTM, and how far "replace the CFO/CLO" can go |
 | [`07-cap-table-and-expense.md`](./07-cap-table-and-expense.md) | **Auditable cap table + expense management** — Carta-style equity and Ramp/Brex-style spend built ON the verified spine, designed so every share, option, and dollar of spend is audit-traceable |
+| [`08-diligence-catalog.md`](./08-diligence-catalog.md) | **Diligence catalog** — 184-item DB of what lenders/VC/PE/M&A request, tagged for auto-preparation (the automation backbone; data in `src/data/diligence/`) |
+| [`09-vibe-coder-gtm-and-pricing.md`](./09-vibe-coder-gtm-and-pricing.md) | **ICP + pricing** — target the millions of "vibe coders"/Claude builders; capital-provider directory + process tracker; tiered subscription now, commission at PE/IPO |
+| [`10-growth-and-distribution.md`](./10-growth-and-distribution.md) | **Growth** — day-one deadline-alert hook, agent-native distribution (MCP + Claude Connectors, GEO/AEO), viral loops, and linking to capital providers (debt-first; equity = broker-dealer caution) |
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate
