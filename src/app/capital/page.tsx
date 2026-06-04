@@ -69,7 +69,10 @@ export default async function CapitalPage() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[11px] leading-snug text-neutral-500">{s.creditScore.note}</p>
+            <a href="/capital/standing" className="mt-3 inline-block text-[11px] font-medium text-[#3DD68C]">
+              View Standing details & how to improve →
+            </a>
+            <p className="mt-2 text-[11px] leading-snug text-neutral-500">{s.creditScore.note}</p>
           </div>
 
           {/* Instant offers */}

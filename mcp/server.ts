@@ -13,6 +13,7 @@ import {
   assembleChecklist,
   listProviders,
 } from "../src/lib/cdp/index";
+import { FACTOR_GUIDANCE, rankFactorsByOpportunity } from "../src/lib/cdp/creditScore";
 
 const server = new McpServer({ name: "attestly", version: "0.1.0" });
 
@@ -25,6 +26,19 @@ server.tool(
   "Get the founder's deterministic 'credit-from-day-one' score, band, factors, and indicative capacity.",
   {},
   async () => wrap(await getCreditScoreAsync())
+);
+
+server.tool(
+  "improve_standing",
+  "Get the ranked opportunities to raise the founder's Attestly Standing score, with concrete guidance per factor.",
+  {},
+  async () => {
+    const c = await getCreditScoreAsync();
+    const ranked = rankFactorsByOpportunity(c.factors)
+      .filter((f) => f.score < 100)
+      .map((f) => ({ factor: f.label, score: f.score, weight: f.weight, howToImprove: FACTOR_GUIDANCE[f.key] || f.detail }));
+    return wrap({ score: c.score, band: c.band, opportunities: ranked });
+  }
 );
 
 server.tool(

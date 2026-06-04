@@ -91,3 +91,27 @@ export function computeCreditScore(m: VerifiedMetrics): CreditScore {
 export function advanceMultiple(score: number): number {
   return score >= 80 ? 10 : score >= 60 ? 7 : score >= 40 ? 4 : 3;
 }
+
+// Deterministic "how to improve" guidance per factor — the credit-from-day-one moat made
+// actionable (and the weekly-return hook). Reusable by the UI and the MCP server.
+export const FACTOR_GUIDANCE: Record<string, string> = {
+  scale: "Grow verified MRR, and connect every revenue rail so none of it is missed.",
+  growth: "Sustain month-over-month growth — even steady single-digit growth lifts this.",
+  retention: "Cut churn and grow expansion revenue; net revenue retention above 100% scores best.",
+  runway: "Extend runway — add cash or trim burn; 12+ months of runway scores highest.",
+  quality: "Keep revenue on traceable rails and keep your refund rate low.",
+  reconciliation: "Connect your bank feed and reconcile every payout — clean books score higher.",
+  history: "Stay connected — verified financial history compounds your score over time.",
+};
+
+export const BANDS = [
+  { band: "Emerging", min: 0, max: 39 },
+  { band: "Building", min: 40, max: 59 },
+  { band: "Strong", min: 60, max: 79 },
+  { band: "Prime", min: 80, max: 100 },
+] as const;
+
+/** Factors ranked by biggest score-lift opportunity ((100 - score) × weight, desc). */
+export function rankFactorsByOpportunity<T extends { score: number; weight: number }>(factors: T[]): T[] {
+  return [...factors].sort((a, b) => (100 - b.score) * b.weight - (100 - a.score) * a.weight);
+}
