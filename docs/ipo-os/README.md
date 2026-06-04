@@ -48,6 +48,9 @@ candidates faster and cheaper than any bank or law firm can.
 | [`11-cross-platform-distribution.md`](./11-cross-platform-distribution.md) | **Built-in everywhere** — one MCP server reused across Claude/Codex/Gemini/Cursor + Stripe/Supabase/Vercel marketplaces; the Vercel/Supabase infra-as-distribution playbook |
 | [`12-capital-network-and-intros.md`](./12-capital-network-and-intros.md) | **Capital network** — continuous provider contact-data enrichment (reuses `pipeline/`) + premium warm-intro service with verified-data attach; two-sided monetization + broker-dealer guardrails |
 | [`13-social-platform.md`](./13-social-platform.md) | **Vibe-coder social platform** — community/feed/verified leaderboard as the growth, retention, and badge-demand engine; cold-start and anti-spam-to-investors cautions |
+| [`14-alpha-moment-provider-matching.md`](./14-alpha-moment-provider-matching.md) | **Alpha moment** — 71 named providers × 506 requirement mappings (`src/data/diligence/providers.json`): name a firm → exact checklist → % already prepared; reverse-match "firms you qualify for" |
+| [`15-debt-and-credit-building.md`](./15-debt-and-credit-building.md) | **Debt-first + credit-building** — the bigger lending market; two-sided trust; an audit-based startup credit score from day one; "the key is seamless, not the fund" |
+| [`16-three-alpha-moments.md`](./16-three-alpha-moments.md) | **The three alpha moments** — (1) instant paperwork-free growth loan off audited data; (2) meet many vibe coders (social); (3) be approached by investors with your DD report + business plan already done |
 
 ## Read order
 Start with `00`, skim `01` for the architecture, then `02` is the part you operate

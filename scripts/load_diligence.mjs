@@ -17,6 +17,7 @@ const Database = require("better-sqlite3");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const CATALOG = path.join(ROOT, "src", "data", "diligence", "catalog.json");
+const PROVIDERS = path.join(ROOT, "src", "data", "diligence", "providers.json");
 const SCHEMA = path.join(ROOT, "src", "data", "diligence", "schema.sql");
 
 const outArg = process.argv.indexOf("--out");
@@ -31,6 +32,9 @@ db.exec(schema);
 
 // Clean slate so re-runs reflect the current catalog.
 for (const t of [
+  "provider_requirement",
+  "provider_extra",
+  "capital_provider",
   "item_capital_source",
   "item_stage",
   "item_data_source",
@@ -72,6 +76,38 @@ const load = db.transaction((items) => {
 
 load(catalog.items);
 
+// Providers + requirement mappings.
+const providers = JSON.parse(fs.readFileSync(PROVIDERS, "utf8"));
+const insProvider = db.prepare(
+  `INSERT INTO capital_provider (id, name, type, stage, eligibility, terms, fee_model, source_url)
+   VALUES (@id, @name, @type, @stage, @eligibility, @terms, @fee_model, @source_url)`
+);
+const insReq = db.prepare(`INSERT OR IGNORE INTO provider_requirement (provider_id, item_id) VALUES (?, ?)`);
+const insExtra = db.prepare(`INSERT INTO provider_extra (provider_id, extra) VALUES (?, ?)`);
+const validItemIds = new Set(catalog.items.map((i) => i.id));
+const danglingRefs = [];
+
+const loadProviders = db.transaction((list) => {
+  for (const p of list) {
+    insProvider.run({
+      id: p.id,
+      name: p.name,
+      type: p.type,
+      stage: JSON.stringify(p.stage ?? []),
+      eligibility: JSON.stringify(p.eligibility ?? {}),
+      terms: p.terms ?? null,
+      fee_model: p.fee_model ?? null,
+      source_url: p.source_url ?? null,
+    });
+    for (const itemId of p.required_item_ids ?? []) {
+      if (!validItemIds.has(itemId)) danglingRefs.push(`${p.id} -> ${itemId}`);
+      else insReq.run(p.id, itemId);
+    }
+    for (const x of p.provider_extras ?? []) insExtra.run(p.id, x);
+  }
+});
+loadProviders(providers.providers);
+
 const count = db.prepare("SELECT COUNT(*) n FROM diligence_item").get().n;
 const byCat = db
   .prepare("SELECT category, COUNT(*) n FROM diligence_item GROUP BY category ORDER BY n DESC")
@@ -80,8 +116,16 @@ const auto = db
   .prepare("SELECT auto_preparable, COUNT(*) n FROM diligence_item GROUP BY auto_preparable")
   .all();
 
+const provCount = db.prepare("SELECT COUNT(*) n FROM capital_provider").get().n;
+const reqCount = db.prepare("SELECT COUNT(*) n FROM provider_requirement").get().n;
+
 console.log(`Loaded ${count} diligence items into ${path.relative(ROOT, OUT)}`);
 console.log("By category:", byCat.map((r) => `${r.category}=${r.n}`).join(", "));
 console.log("Automation:", auto.map((r) => `${r.auto_preparable}=${r.n}`).join(", "));
+console.log(`Loaded ${provCount} capital providers with ${reqCount} requirement mappings.`);
+if (danglingRefs.length) {
+  console.warn(`WARNING: ${danglingRefs.length} provider->item refs point to unknown item ids:`);
+  console.warn(danglingRefs.join("\n"));
+}
 
 db.close();

@@ -51,9 +51,37 @@ CREATE TABLE IF NOT EXISTS item_source_url (
   PRIMARY KEY (item_id, url)
 );
 
+-- Named capital providers (the directory) — powers the alpha moment.
+CREATE TABLE IF NOT EXISTS capital_provider (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  type        TEXT NOT NULL, -- accelerator|vc|crowdfunding|angel_platform|rbf|venture_debt|startup_bank|smb_lender|bank|sba|grant|growth_equity|pe|qoe_advisor|corporate_vc|checklist_source
+  stage       TEXT,          -- JSON array of stage tags
+  eligibility TEXT,          -- JSON blob
+  terms       TEXT,
+  fee_model   TEXT,
+  source_url  TEXT
+);
+
+-- Provider -> required diligence item (references diligence_item.id). The join that
+-- makes "name a firm -> here's the exact checklist, X% already prepared" instant.
+CREATE TABLE IF NOT EXISTS provider_requirement (
+  provider_id TEXT NOT NULL REFERENCES capital_provider(id) ON DELETE CASCADE,
+  item_id     TEXT NOT NULL REFERENCES diligence_item(id) ON DELETE CASCADE,
+  PRIMARY KEY (provider_id, item_id)
+);
+
+-- Provider-specific requests not (yet) modeled as catalog items (free text).
+CREATE TABLE IF NOT EXISTS provider_extra (
+  provider_id TEXT NOT NULL REFERENCES capital_provider(id) ON DELETE CASCADE,
+  extra       TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_item_category ON diligence_item(category);
 CREATE INDEX IF NOT EXISTS idx_item_auto ON diligence_item(auto_preparable);
 CREATE INDEX IF NOT EXISTS idx_ics_source ON item_capital_source(capital_source);
+CREATE INDEX IF NOT EXISTS idx_provider_type ON capital_provider(type);
+CREATE INDEX IF NOT EXISTS idx_preq_item ON provider_requirement(item_id);
 
 -- Example: assemble the checklist for a Series A VC raise, with automation coverage.
 --   SELECT di.id, di.item, di.category, di.auto_preparable
